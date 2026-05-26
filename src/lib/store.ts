@@ -85,6 +85,20 @@ export async function deleteTruckById(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function updateTruckByImei(
+  imei: string,
+  patch: { lat: number; lng: number; speed: number; fuel: number; status?: string }
+): Promise<Truck | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ ...patch, status: patch.status ?? "moving" })
+    .eq("imei", imei)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as Truck | null;
+}
+
 export async function getAllVehicles(): Promise<Vehicle[]> {
   const { data, error } = await supabase
     .from("vehicles")
