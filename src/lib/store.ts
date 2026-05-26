@@ -1,6 +1,27 @@
 import { supabase } from "@/lib/supabase";
 import type { Truck } from "@/data/trucks";
 
+export interface Vehicle {
+  id: string;
+  name: string;
+  plate: string;
+  model: string;
+  year: string;
+  route: string;
+  fuel_capacity: number;
+  status: string;
+  created_at?: string;
+}
+
+export interface Driver {
+  id?: string;
+  name: string;
+  phone: string;
+  license_no: string;
+  assigned_truck_id: string;
+  created_at?: string;
+}
+
 const TABLE = "trucks";
 
 export async function getAllTrucks(filters: {
@@ -62,6 +83,44 @@ export async function updateTruckById(id: string, patch: Partial<Truck>): Promis
 export async function deleteTruckById(id: string): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+export async function getAllVehicles(): Promise<Vehicle[]> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Vehicle[];
+}
+
+export async function addVehicle(v: Omit<Vehicle, "created_at">): Promise<Vehicle> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .insert(v)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as Vehicle;
+}
+
+export async function getAllDrivers(): Promise<Driver[]> {
+  const { data, error } = await supabase
+    .from("drivers")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Driver[];
+}
+
+export async function addDriver(d: Omit<Driver, "id" | "created_at">): Promise<Driver> {
+  const { data, error } = await supabase
+    .from("drivers")
+    .insert(d)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as Driver;
 }
 
 export async function getFleetSummary() {

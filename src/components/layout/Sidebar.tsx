@@ -15,6 +15,7 @@ const NAV = [
   { id: "trucks", icon: "🚛", label: "Trucks" },
   { id: "fuel", icon: "⛽", label: "Fuel" },
   { id: "reports", icon: "📋", label: "Reports" },
+  { id: "setup", icon: "⚙️", label: "Setup" },
 ];
 
 export function Sidebar({
