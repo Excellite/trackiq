@@ -13,7 +13,8 @@ import { TruckDetails }  from "@/components/pages/TruckDetails";
 import { LiveMap }       from "@/components/pages/LiveMap";
 import { TrucksPage }    from "@/components/pages/TrucksPage";
 import { FuelPage }      from "@/components/pages/FuelPage";
-import { Setup }         from "@/components/pages/Setup";
+import { Setup }               from "@/components/pages/Setup";
+import { VehicleRegistration } from "@/components/pages/VehicleRegistration";
 
 import { useFleetData }     from "@/hooks/useFleetData";
 import { cn }               from "@/lib/cn";
@@ -146,6 +147,9 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
 
             ) : activeNav === "fuel" ? (
               <FuelPage trucks={trucks} onSelectTruck={openDetail} />
+
+            ) : activeNav === "register" ? (
+              <VehicleRegistration />
 
             ) : activeNav === "setup" ? (
               <Setup />
