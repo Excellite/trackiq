@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -10,10 +10,13 @@ import { KPICard } from "@/components/ui/kpi-card";
 import { FuelGauge } from "@/components/trucks/FuelGauge";
 import { FuelHistoryChart } from "@/components/charts/FuelHistoryChart";
 import { SpeedChart } from "@/components/charts/SpeedChart";
+import { NigeriaMap } from "@/components/map/NigeriaMap";
+import { useTripHistory } from "@/hooks/useTripHistory";
 
 import { Truck, genFuelHistory, genSpeedHistory } from "@/data/trucks";
 import { cn } from "@/lib/cn";
 import { fuelText } from "@/lib/constants";
+import type { Trip } from "@/lib/store";
 
 function InfoRow({
   label,
@@ -29,6 +32,126 @@ function InfoRow({
       <span className="text-slate-400">{label}</span>
       <span className={valueClass}>{value}</span>
     </div>
+  );
+}
+
+function formatDuration(start: string, end: string | null | undefined) {
+  if (!end) return "Active";
+  const mins = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000);
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
+function TripHistorySection({ truckId, currentTruck }: { truckId: string; currentTruck: Truck }) {
+  const { trips, positions, activeTrip, loading, fetchPositions, clearPositions } = useTripHistory(truckId);
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+
+  const handleSelectTrip = async (trip: Trip) => {
+    if (selectedTrip?.id === trip.id) {
+      setSelectedTrip(null);
+      clearPositions();
+      return;
+    }
+    setSelectedTrip(trip);
+    if (trip.id) await fetchPositions(trip.id);
+  };
+
+  const totalKm = trips.reduce((a, t) => a + t.distance_km, 0);
+
+  return (
+    <Card className="bg-slate-800/60 border-slate-700/50">
+      <CardHeader className="pt-4 pb-2 px-5 border-b border-slate-700/30">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">Trip History</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {trips.length} completed · {totalKm.toFixed(1)} km total
+            </p>
+          </div>
+          {activeTrip && (
+            <span className="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 rounded px-2 py-0.5 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              TRIP ACTIVE
+            </span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {loading && (
+          <div className="flex items-center justify-center h-20">
+            <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {!loading && trips.length === 0 && (
+          <p className="text-sm text-slate-500 p-5">
+            No completed trips yet. Trips are recorded automatically once the GPS tracker is connected.
+          </p>
+        )}
+
+        {trips.map((trip) => {
+          const isSelected = selectedTrip?.id === trip.id;
+          const fuelUsed = trip.fuel_start != null && trip.fuel_end != null
+            ? +(trip.fuel_start - trip.fuel_end).toFixed(1) : null;
+
+          return (
+            <div key={trip.id}>
+              <div
+                onClick={() => handleSelectTrip(trip)}
+                className={cn(
+                  "flex items-center gap-4 px-5 py-3 border-b border-slate-700/20 cursor-pointer transition-colors",
+                  isSelected ? "bg-amber-500/5" : "hover:bg-slate-700/20"
+                )}
+              >
+                <div className="shrink-0 text-center w-10">
+                  <p className="text-xs text-slate-400">
+                    {new Date(trip.started_at).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}
+                  </p>
+                  <p className="text-[10px] text-slate-600">
+                    {new Date(trip.started_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <span className="text-emerald-400 font-mono">▶</span>
+                    <span className="font-mono tabular-nums">{trip.start_lat?.toFixed(3)}°, {trip.start_lng?.toFixed(3)}°</span>
+                    {trip.end_lat && (
+                      <>
+                        <span>→</span>
+                        <span className="font-mono tabular-nums">{trip.end_lat.toFixed(3)}°, {trip.end_lng?.toFixed(3)}°</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex gap-3 mt-0.5 text-[11px] text-slate-500">
+                    <span>{formatDuration(trip.started_at, trip.ended_at)}</span>
+                    {fuelUsed !== null && <span>⛽ -{fuelUsed}%</span>}
+                  </div>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-mono font-bold text-white">{trip.distance_km.toFixed(1)} km</p>
+                  <p className={cn("text-[10px] font-mono", isSelected ? "text-amber-400" : "text-slate-600")}>
+                    {isSelected ? "▲ hide route" : "▼ show route"}
+                  </p>
+                </div>
+              </div>
+
+              {isSelected && positions.length > 0 && (
+                <div className="h-48 border-b border-slate-700/20 bg-slate-900/40">
+                  <NigeriaMap
+                    trucks={[currentTruck]}
+                    selectedId={null}
+                    onSelect={() => {}}
+                    routePositions={positions}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -212,6 +335,8 @@ export function TruckDetails({
           </CardContent>
         </Card>
       </div>
+
+      <TripHistorySection truckId={truck.id} currentTruck={truck} />
     </div>
   );
 }

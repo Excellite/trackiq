@@ -53,10 +53,12 @@ export function NigeriaMap({
   trucks,
   selectedId,
   onSelect,
+  routePositions = [],
 }: {
   trucks: Truck[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  routePositions?: Array<{ lat: number; lng: number }>;
 }) {
   return (
     <svg viewBox="0 0 100 100" className="w-full h-full block">
@@ -106,6 +108,29 @@ export function NigeriaMap({
           </g>
         );
       })}
+
+      {/* Route replay polyline */}
+      {routePositions.length > 1 && (
+        <polyline
+          points={routePositions.map((p) => { const xy = toXY(p.lat, p.lng); return `${xy.x},${xy.y}`; }).join(" ")}
+          fill="none"
+          stroke="#F59E0B"
+          strokeWidth="0.6"
+          opacity="0.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+      {routePositions.length > 0 && (() => {
+        const first = toXY(routePositions[0].lat, routePositions[0].lng);
+        const last  = toXY(routePositions[routePositions.length - 1].lat, routePositions[routePositions.length - 1].lng);
+        return (
+          <>
+            <circle cx={first.x} cy={first.y} r="1.2" fill="#22C55E" />
+            <circle cx={last.x}  cy={last.y}  r="1.2" fill="#F59E0B" />
+          </>
+        );
+      })()}
 
       {trucks.map((t) => {
         const p = toXY(t.lat, t.lng);
