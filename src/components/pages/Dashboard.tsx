@@ -237,14 +237,14 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
                   </Alert>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <KPICard icon="🚛" label="Active Trucks"  value={`${moving}/${trucks.length}`} valueClass={moving > 0 ? "text-emerald-400" : "text-[var(--subtle)]"} sub={`${alerts} alert${alerts !== 1 ? "s" : ""}`} />
                   <KPICard icon="⛽" label="Avg Fuel Level"  value={`${avgFuel}%`}                valueClass={fuelText(+avgFuel)} sub="Across all trucks" />
                   <KPICard icon="🚀" label="Avg Speed"       value={`${avgSpd} km/h`}             valueClass="text-blue-400"      sub="Moving trucks only" />
                   <KPICard icon="⚠️" label="Alerts"          value={alerts}                       valueClass={alerts > 0 ? "text-red-400" : "text-emerald-400"} sub={alerts > 0 ? "Requires attention" : "All clear"} />
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_1fr] gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
                   <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
                     <div className="py-3 px-5 border-b border-[var(--border)] flex items-center justify-between gap-3 flex-wrap">
                       <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Live Fleet Map · Nigeria</p>
@@ -256,7 +256,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
                         ))}
                       </div>
                     </div>
-                    <div className="h-[330px]">
+                    <div className="h-[260px] sm:h-[300px] lg:h-[330px]">
                       <NigeriaMap
                         trucks={trucks}
                         selectedId={selId}

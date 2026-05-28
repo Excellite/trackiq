@@ -48,7 +48,7 @@ export function SettingsPanel({ open, onClose, user, onLogout, refreshInterval, 
         <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} />
       )}
 
-      <div className={`fixed top-0 right-0 h-full w-80 bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed top-0 right-0 h-full w-full sm:w-80 bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
 
         {/* Header */}
         <div className="h-14 flex items-center justify-between px-5 border-b border-[var(--border-sub)] shrink-0">

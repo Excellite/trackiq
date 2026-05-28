@@ -87,14 +87,14 @@ export function LiveMap({
         </p>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
         {/* Map */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
           <div className="py-3 px-5 border-b border-[var(--border)] flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
               Nigeria · {trucks.length} vehicles tracked
             </p>
-            <div className="flex gap-4 text-xs text-[var(--muted)]">
+            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs text-[var(--muted)]">
               {[
                 ["bg-emerald-500", "Moving"],
                 ["bg-gray-400",    "Idle"  ],
@@ -115,7 +115,7 @@ export function LiveMap({
               </span>
             </div>
           </div>
-          <div className="h-[520px]">
+          <div className="h-[300px] sm:h-[420px] lg:h-[520px]">
             <FleetMap
               trucks={trucks}
               selectedId={selId}

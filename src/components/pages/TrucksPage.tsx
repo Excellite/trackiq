@@ -149,7 +149,7 @@ export function TrucksPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSelec
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search ${cfg.plural}…`}
-          className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3.5 py-2 text-sm text-[var(--text)] placeholder:text-[var(--subtle)] outline-none focus:border-orange-400 transition-colors min-w-[220px] shadow-sm"
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3.5 py-2 text-sm text-[var(--text)] placeholder:text-[var(--subtle)] outline-none focus:border-orange-400 transition-colors w-full sm:w-auto sm:min-w-[200px] shadow-sm"
         />
         <div className="flex gap-1 flex-wrap">
           {STATUSES.map((s) => (

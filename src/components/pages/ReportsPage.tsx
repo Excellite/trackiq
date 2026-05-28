@@ -252,7 +252,7 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
       </div>
 
       {/* ── KPI strip ─────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {([
           { label: "Trips Completed", value: completed.length,                              hl: false },
           { label: "Distance Covered", value: `${totalKm} km`,                             hl: false },
@@ -271,7 +271,7 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
       </div>
 
       {/* ── Alerts + Active trips ──────────────────────────────────────────────── */}
-      <div className={cn("grid gap-4", active.length > 0 ? "lg:grid-cols-2" : "grid-cols-1")}>
+      <div className={cn("grid gap-4", active.length > 0 ? "md:grid-cols-2" : "grid-cols-1")}>
 
         {/* Alerts / healthy */}
         {!loading && (alerts.length === 0 ? (

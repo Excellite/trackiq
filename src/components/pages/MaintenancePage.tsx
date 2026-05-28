@@ -148,7 +148,7 @@ function LogForm({ truckId, onSaved }: { truckId: string; onSaved: (r: Maintenan
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2">
           <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">Service Type</label>
           <select value={form.service_type} onChange={(e) => handleServiceTypeChange(e.target.value)} className={fieldCls}>
@@ -388,7 +388,7 @@ export function MaintenancePage({ trucks }: { trucks: Truck[] }) {
       )}
 
       {/* Main layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-4" style={{ minHeight: 560 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4" style={{ minHeight: 560 }}>
 
         {/* Left — truck list */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm flex flex-col overflow-hidden">

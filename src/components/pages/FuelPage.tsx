@@ -31,7 +31,7 @@ export function FuelPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard icon="⛽" label="Avg Fuel Level"  value={`${avgFuel}%`}   valueClass={fuelText(+avgFuel)}                                    sub="Fleet average"    />
         <KPICard icon="🔴" label="Critical (<20%)" value={critical.length} valueClass={critical.length > 0 ? "text-red-500" : "text-emerald-600"} sub="Immediate refuel" />
         <KPICard icon="🟡" label="Low (20–50%)"    value={low.length}      valueClass={low.length > 0 ? "text-orange-500" : "text-[var(--subtle)]"}   sub="Refuel soon"      />

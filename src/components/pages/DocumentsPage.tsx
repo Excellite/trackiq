@@ -82,7 +82,7 @@ function AddDocForm({ truckId, onAdded }: { truckId: string; onAdded: (d: Vehicl
   return (
     <form onSubmit={submit} className="space-y-3 pt-4 border-t border-[var(--border-sub)]">
       <p className="text-xs font-semibold text-[var(--text)]">Add Document</p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-[11px] text-[var(--subtle)] mb-1">Type</label>
           <select name="doc_type" value={form.doc_type} onChange={onChange} className={inputCls}>
@@ -198,10 +198,10 @@ export function DocumentsPage({ trucks }: { trucks: Truck[] }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4 items-start">
         {/* Left — vehicle list */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-y-auto max-h-[calc(100vh-280px)]">
+          <div className="overflow-y-auto max-h-[50vh] lg:max-h-[calc(100vh-280px)]">
             {loading && (
               <div className="flex items-center justify-center h-20">
                 <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />

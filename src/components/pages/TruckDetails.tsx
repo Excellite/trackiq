@@ -136,7 +136,7 @@ function TripHistorySection({ truckId, currentTruck }: { truckId: string; curren
             </div>
 
             {isSelected && (
-              <div className="h-48 border-b border-[var(--border-sub)] bg-[var(--surface-2)]">
+              <div className="h-40 md:h-48 border-b border-[var(--border-sub)] bg-[var(--surface-2)]">
                 <NigeriaMap
                   trucks={[currentTruck]}
                   selectedId={null}
@@ -207,14 +207,14 @@ export function TruckDetails({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPICard icon="⛽" label="Fuel Level"    value={`${truck.fuel}%`}                    valueClass={fuelText(truck.fuel)}                           sub="Tank: 400 L"      />
         <KPICard icon="🚀" label="Current Speed" value={`${truck.speed} km/h`}               valueClass={truck.speed > 90 ? "text-red-500" : "text-blue-600"} sub="Limit: 100 km/h" />
         <KPICard icon="📍" label="Odometer"      value={`${truck.odometer.toLocaleString()} km`} valueClass="text-blue-600"                              sub="Total distance"   />
         <KPICard icon="🔧" label="Next Service"  value={truck.nextService}                   valueClass={overdue ? "text-red-500" : "text-orange-500"}   sub={overdue ? "OVERDUE" : "Scheduled"} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
           <div className="pb-0 pt-4 px-5">
             <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
@@ -268,7 +268,7 @@ export function TruckDetails({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
           <div className="pt-4 pb-2 px-5 border-b border-[var(--border-sub)]">
             <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">

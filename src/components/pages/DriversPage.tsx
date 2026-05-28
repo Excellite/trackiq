@@ -453,7 +453,7 @@ export function DriversPage({ onSelectTruck }: { onSelectTruck: (id: string) => 
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 items-start">
         {/* Left — driver list */}
         <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
           <div className="p-3 space-y-2 border-b border-[var(--border-sub)]">
