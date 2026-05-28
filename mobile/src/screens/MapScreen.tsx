@@ -63,8 +63,9 @@ var state = {};   // truckId -> { marker, pulse, lat, lng, bearing, raf }
 var follow = {
   active:    false,
   truckId:   null,
-  outline:   null,   // dark border layer (drawn first, wider)
-  polyline:  null,   // bright blue layer (drawn on top)
+  shadow:    null,   // white glow — bottom layer
+  outline:   null,   // dark border — middle layer
+  polyline:  null,   // vivid blue fill — top layer
   startDot:  null,
   headDot:   null,
   positions: [],
@@ -187,34 +188,42 @@ window.updateTrucks = function(trucks) {
   });
 };
 
-// ── Draw the Google-Maps-style double route line ──────────────────────────────
+// ── Draw the Google-Maps-style triple-layer route line ───────────────────────
 function drawRoute(latlngs) {
-  // Layer 1: dark navy outline — wide, behind the fill
-  if (follow.outline) { map.removeLayer(follow.outline); }
-  follow.outline = L.polyline(latlngs, {
-    color: '#1A3A6E', weight: 14, opacity: 0.95,
-    lineCap: 'round', lineJoin: 'round'
-  }).addTo(map);
-
-  // Layer 2: bright blue fill — narrower, on top
+  if (follow.shadow)   { map.removeLayer(follow.shadow);   }
+  if (follow.outline)  { map.removeLayer(follow.outline);  }
   if (follow.polyline) { map.removeLayer(follow.polyline); }
-  follow.polyline = L.polyline(latlngs, {
-    color: '#4285F4', weight: 9, opacity: 1,
+  if (follow.startDot) { map.removeLayer(follow.startDot); }
+  if (follow.headDot)  { map.removeLayer(follow.headDot);  }
+
+  // Layer 1 — soft white glow (gives the "raised road" depth)
+  follow.shadow = L.polyline(latlngs, {
+    color: '#ffffff', weight: 22, opacity: 0.18,
     lineCap: 'round', lineJoin: 'round'
   }).addTo(map);
 
-  // Origin dot — white ring with blue fill (like Google's current-location dot)
-  if (follow.startDot) { map.removeLayer(follow.startDot); }
+  // Layer 2 — dark border
+  follow.outline = L.polyline(latlngs, {
+    color: '#0D3080', weight: 16, opacity: 1,
+    lineCap: 'round', lineJoin: 'round'
+  }).addTo(map);
+
+  // Layer 3 — vivid blue fill (exact Google Maps nav colour)
+  follow.polyline = L.polyline(latlngs, {
+    color: '#1558D6', weight: 11, opacity: 1,
+    lineCap: 'round', lineJoin: 'round'
+  }).addTo(map);
+
+  // Origin dot — solid blue circle with white ring
   follow.startDot = L.circleMarker(latlngs[0], {
-    radius: 8, fillColor: '#4285F4', color: '#fff',
+    radius: 9, fillColor: '#1558D6', color: '#fff',
     weight: 3, fillOpacity: 1, opacity: 1
   }).addTo(map);
 
-  // Head dot — the front of the route, white outline circle
+  // Head dot — white filled circle with thick blue ring at current position
   var last = latlngs[latlngs.length - 1];
-  if (follow.headDot) { map.removeLayer(follow.headDot); }
   follow.headDot = L.circleMarker(last, {
-    radius: 11, fillColor: '#fff', color: '#4285F4',
+    radius: 12, fillColor: '#fff', color: '#1558D6',
     weight: 4, fillOpacity: 1, opacity: 1
   }).addTo(map);
 }
@@ -258,7 +267,8 @@ window.updateFollow = function(truck, positions) {
 
   var latlngs = positions.map(function(p) { return [p.lat, p.lng]; });
 
-  // Update both polyline layers + end dots
+  // Update all three layers + end dots
+  if (follow.shadow)   follow.shadow.setLatLngs(latlngs);
   if (follow.outline)  follow.outline.setLatLngs(latlngs);
   if (follow.polyline) follow.polyline.setLatLngs(latlngs);
   if (follow.headDot)  follow.headDot.setLatLng(latlngs[latlngs.length - 1]);
@@ -280,6 +290,7 @@ window.updateFollow = function(truck, positions) {
 
 // ── Follow mode: stop ─────────────────────────────────────────────────────────
 window.stopFollowing = function() {
+  if (follow.shadow)   { map.removeLayer(follow.shadow);   follow.shadow   = null; }
   if (follow.outline)  { map.removeLayer(follow.outline);  follow.outline  = null; }
   if (follow.polyline) { map.removeLayer(follow.polyline); follow.polyline = null; }
   if (follow.startDot) { map.removeLayer(follow.startDot); follow.startDot = null; }

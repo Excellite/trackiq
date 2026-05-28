@@ -111,7 +111,7 @@ function headDotIcon(): google.maps.Symbol {
     path: google.maps.SymbolPath.CIRCLE,
     fillColor: "#fff",
     fillOpacity: 1,
-    strokeColor: "#4285F4",
+    strokeColor: "#1558D6",
     strokeWeight: 4,
     scale: 10,
   };
@@ -215,14 +215,16 @@ export function FleetMap({
             <CameraFollow positions={followPositions} />
             {followPositions.length > 1 && (
               <>
-                {/* Dark navy outline — drawn first, wider */}
-                <Polyline path={followPositions} strokeColor="#1A3A6E" strokeWeight={14} strokeOpacity={0.95} geodesic />
-                {/* Bright blue fill — narrower, on top */}
-                <Polyline path={followPositions} strokeColor="#4285F4" strokeWeight={9}  strokeOpacity={1}    geodesic />
+                {/* Layer 1: white glow for depth */}
+                <Polyline path={followPositions} strokeColor="#ffffff" strokeWeight={22} strokeOpacity={0.18} geodesic />
+                {/* Layer 2: dark border */}
+                <Polyline path={followPositions} strokeColor="#0D3080" strokeWeight={16} strokeOpacity={1}    geodesic />
+                {/* Layer 3: vivid blue fill — Google Maps nav colour */}
+                <Polyline path={followPositions} strokeColor="#1558D6" strokeWeight={11} strokeOpacity={1}    geodesic />
               </>
             )}
             {/* Origin dot */}
-            <Marker position={followPositions[0]} icon={pinIcon("#4285F4", 8)} title="Journey start" zIndex={8} />
+            <Marker position={followPositions[0]} icon={pinIcon("#1558D6", 9)} title="Journey start" zIndex={8} />
             {/* Head dot — white circle with blue ring at truck's latest point */}
             <Marker position={followPositions[followPositions.length - 1]} icon={headDotIcon()} title="Current position" zIndex={9} />
           </>
