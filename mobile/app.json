@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "TrackIQ",
+    "slug": "trackiq",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F97316"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ng.trackiq.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TrackIQ needs location to track your vehicle position.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TrackIQ needs background location to log trips automatically."
+      },
+      "backgroundModes": ["location", "fetch"]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F97316"
+      },
+      "package": "ng.trackiq.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "TrackIQ needs location to track your vehicle."
+        }
+      ],
+      "expo-task-manager"
+    ]
+  }
+}
