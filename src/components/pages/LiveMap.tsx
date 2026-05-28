@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FleetMap, TruckRoute } from "@/components/map/FleetMap";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FuelBar } from "@/components/ui/fuel-bar";
+import { LiveDot } from "@/components/ui/live-dot";
 import { cn } from "@/lib/cn";
 import { fuelText } from "@/lib/constants";
 import type { Truck } from "@/data/trucks";
@@ -123,7 +124,10 @@ export function LiveMap({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Live Fleet Map</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text)]">Live Fleet Map</h1>
+          <LiveDot pulse color="bg-emerald-500" />
+        </div>
         <p className="text-xs text-[var(--subtle)] mt-0.5">
           Real-time positions · routes show each vehicle&apos;s last trip (start → destination)
         </p>

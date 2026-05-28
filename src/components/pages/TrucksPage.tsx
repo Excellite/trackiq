@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FuelBar } from "@/components/ui/fuel-bar";
+import { LiveDot } from "@/components/ui/live-dot";
 import { cn } from "@/lib/cn";
 import { fuelText } from "@/lib/constants";
 import type { Truck } from "@/data/trucks";
@@ -110,7 +111,10 @@ export function TrucksPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSelec
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Fleet</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text)]">Fleet</h1>
+          <LiveDot pulse color="bg-emerald-500" />
+        </div>
         <p className="text-xs text-[var(--muted)] mt-0.5">{trucks.length} vehicles across 4 categories</p>
       </div>
 

@@ -23,6 +23,7 @@ import { SettingsPanel }  from "@/components/layout/SettingsPanel";
 import { MobileTopBar, MobileDrawer } from "@/components/layout/MobileSidebar";
 
 import { useFleetData }     from "@/hooks/useFleetData";
+import { LiveDot }          from "@/components/ui/live-dot";
 import { cn }               from "@/lib/cn";
 import { fuelText, fuelTw } from "@/lib/constants";
 import type { Truck }       from "@/data/trucks";
@@ -114,7 +115,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <LiveDot pulse color="bg-emerald-500" />
               <span className="text-xs font-mono text-emerald-600 font-semibold">LIVE</span>
             </div>
             <span className="text-xs text-[var(--subtle)] hidden sm:block">

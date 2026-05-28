@@ -2,6 +2,7 @@
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { KPICard } from "@/components/ui/kpi-card";
+import { LiveDot } from "@/components/ui/live-dot";
 import { cn } from "@/lib/cn";
 import { fuelText, fuelTw } from "@/lib/constants";
 import type { Truck } from "@/data/trucks";
@@ -25,7 +26,10 @@ export function FuelPage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Fuel Monitoring</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text)]">Fuel Monitoring</h1>
+          <LiveDot pulse color="bg-emerald-500" />
+        </div>
         <p className="text-xs text-[var(--subtle)] mt-0.5">
           Real-time fuel levels · 400 L tanks · 38 L/100 km est.
         </p>

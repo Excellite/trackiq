@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +12,8 @@ import { SpeedChart } from "@/components/charts/SpeedChart";
 import { NigeriaMap } from "@/components/map/NigeriaMap";
 import { useTripHistory } from "@/hooks/useTripHistory";
 import { useTruckPositions } from "@/hooks/useTruckPositions";
+import { usePoll } from "@/hooks/usePoll";
+import { LiveDot } from "@/components/ui/live-dot";
 
 import { Truck } from "@/data/trucks";
 import { cn } from "@/lib/cn";
@@ -43,8 +45,11 @@ function formatDuration(start: string, end: string | null | undefined) {
 }
 
 function TripHistorySection({ truckId, currentTruck }: { truckId: string; currentTruck: Truck }) {
-  const { trips, positions, activeTrip, loading, fetchPositions, clearPositions } = useTripHistory(truckId);
+  const { trips, positions, activeTrip, loading, fetchPositions, clearPositions, refresh } = useTripHistory(truckId);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+
+  const pollRefresh = useCallback(async () => { await refresh(); }, [refresh]);
+  const { lastUpdated } = usePoll(pollRefresh, 10_000);
 
   const handleSelectTrip = async (trip: Trip) => {
     if (selectedTrip?.id === trip.id) {
@@ -62,9 +67,13 @@ function TripHistorySection({ truckId, currentTruck }: { truckId: string; curren
     <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
       <div className="pt-4 pb-2 px-5 border-b border-[var(--border)] flex items-center justify-between">
         <div>
-          <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Trip History</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Trip History</p>
+            <LiveDot pulse color="bg-emerald-500" />
+          </div>
           <p className="text-xs text-[var(--subtle)] mt-0.5">
             {trips.length} completed · {totalKm.toFixed(1)} km total
+            {lastUpdated && <span className="ml-1">· {lastUpdated.toLocaleTimeString("en-NG")}</span>}
           </p>
         </div>
         {activeTrip && (
@@ -179,7 +188,10 @@ export function TruckDetails({
         </Button>
 
         <div>
-          <h1 className="text-xl font-bold text-[var(--text)]">{truck.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text)]">{truck.name}</h1>
+            <LiveDot pulse color="bg-emerald-500" />
+          </div>
           <p className="text-xs text-[var(--subtle)] font-mono">
             {truck.plate} · {truck.model} · {truck.year}
           </p>
