@@ -46,15 +46,42 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <Card className="bg-slate-800/80 border-slate-700/50 shadow-2xl">
-          <CardContent className="p-8">
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">🚛</div>
-              <h1 className="text-2xl font-extrabold tracking-wide text-white">TrackIQ</h1>
-              <p className="text-xs text-slate-400 mt-1">Fleet Intelligence Platform · Nigeria</p>
+    <div className="min-h-screen bg-[var(--bg)] flex">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-[420px] bg-[#1F2937] border-r border-[#374151] flex-col items-center justify-center p-12 gap-8">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-6">🚛</div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">TrackIQ</h1>
+          <p className="text-sm text-gray-400 mt-2 tracking-wide">Fleet Intelligence Platform</p>
+        </div>
+        <div className="space-y-4 w-full max-w-xs">
+          {[
+            { icon: "📍", title: "Real-Time GPS", desc: "Track every truck across Nigeria live" },
+            { icon: "⛽", title: "Fuel Monitoring", desc: "Live tank levels and consumption alerts" },
+            { icon: "🛣️", title: "Trip History",   desc: "Auto-detected routes with replay" },
+          ].map((f) => (
+            <div key={f.title} className="flex items-start gap-3 bg-[#111827] rounded-xl p-4">
+              <span className="text-xl">{f.icon}</span>
+              <div>
+                <p className="text-sm font-semibold text-white">{f.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{f.desc}</p>
+              </div>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right login panel */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-[var(--bg)]">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 lg:hidden text-center">
+            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-2xl mx-auto mb-3">🚛</div>
+            <h1 className="text-2xl font-bold text-[var(--text)]">TrackIQ</h1>
+          </div>
+
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-sm p-8">
+            <h2 className="text-xl font-bold text-[var(--text)] mb-1">Sign in</h2>
+            <p className="text-sm text-[var(--subtle)] mb-6">Enter your credentials to continue</p>
 
             <div className="space-y-4">
               {[
@@ -62,35 +89,35 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
                 { label: "Password",      val: pass,  set: setPass,  type: "password", ph: "••••••••" },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="block text-xs text-slate-400 mb-1.5">{f.label}</label>
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">{f.label}</label>
                   <input
                     value={f.val}
                     onChange={(e) => f.set(e.target.value)}
                     type={f.type}
                     placeholder={f.ph}
                     onKeyDown={(e) => e.key === "Enter" && submit()}
-                    className="w-full bg-slate-900/80 border border-slate-600/50 rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-amber-500/60 transition-colors"
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-sm text-[var(--text)] placeholder-[var(--subtle)] outline-none focus:border-orange-400 focus:bg-[var(--surface)] transition-colors"
                   />
                 </div>
               ))}
 
-              {err && <p className="text-red-400 text-xs">⚠ {err}</p>}
+              {err && <p className="text-red-500 text-xs">⚠ {err}</p>}
 
               <Button
                 onClick={submit}
                 disabled={loading}
-                className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm py-5 mt-2"
+                className="w-full bg-orange-500 hover:bg-orange-400 text-white font-bold text-sm py-5 mt-2"
               >
-                {loading ? "Authenticating…" : "Sign In →"}
+                {loading ? "Authenticating…" : "Sign In"}
               </Button>
             </div>
 
-            <p className="text-center text-xs text-slate-600 mt-6">
-              Demo · any email · password:{" "}
-              <span className="text-amber-500/80 font-mono">password</span>
+            <p className="text-center text-xs text-[var(--subtle)] mt-5">
+              Demo — any email, password:{" "}
+              <span className="text-orange-500 font-mono">password</span>
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -124,8 +151,8 @@ export default function App() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

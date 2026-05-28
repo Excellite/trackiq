@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAllDrivers, addDriver } from "@/lib/store";
+import { getDriversWithStats, addDriver } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    const drivers = await getAllDrivers();
+    const drivers = await getDriversWithStats();
     return NextResponse.json({ data: drivers });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
@@ -28,6 +29,9 @@ export async function POST(req: Request) {
       license_no:        license_no        ?? "",
       assigned_truck_id,
     });
+
+    // Keep trucks.driver in sync so the fleet list shows the driver name
+    await supabase.from("trucks").update({ driver: name }).eq("id", assigned_truck_id);
 
     return NextResponse.json({ data: driver }, { status: 201 });
   } catch (err) {

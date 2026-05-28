@@ -1,7 +1,6 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { KPICard } from "@/components/ui/kpi-card";
 import { cn } from "@/lib/cn";
 import { fuelText, fuelTw } from "@/lib/constants";
@@ -26,25 +25,23 @@ export function FuelPage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-white">Fuel Monitoring</h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <h1 className="text-xl font-bold text-[var(--text)]">Fuel Monitoring</h1>
+        <p className="text-xs text-[var(--subtle)] mt-0.5">
           Real-time fuel levels · 400 L tanks · 38 L/100 km est.
         </p>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <KPICard icon="⛽" label="Avg Fuel Level"  value={`${avgFuel}%`}       valueClass={fuelText(+avgFuel)}                             sub="Fleet average"   />
-        <KPICard icon="🔴" label="Critical (<20%)" value={critical.length}     valueClass={critical.length > 0 ? "text-red-400" : "text-emerald-400"} sub="Immediate refuel" />
-        <KPICard icon="🟡" label="Low (20–50%)"    value={low.length}          valueClass={low.length > 0 ? "text-amber-400" : "text-slate-400"}      sub="Refuel soon"      />
-        <KPICard icon="🟢" label="Normal (>50%)"   value={normal.length}       valueClass="text-emerald-400"                               sub="All good"        />
+        <KPICard icon="⛽" label="Avg Fuel Level"  value={`${avgFuel}%`}   valueClass={fuelText(+avgFuel)}                                    sub="Fleet average"    />
+        <KPICard icon="🔴" label="Critical (<20%)" value={critical.length} valueClass={critical.length > 0 ? "text-red-500" : "text-emerald-600"} sub="Immediate refuel" />
+        <KPICard icon="🟡" label="Low (20–50%)"    value={low.length}      valueClass={low.length > 0 ? "text-orange-500" : "text-[var(--subtle)]"}   sub="Refuel soon"      />
+        <KPICard icon="🟢" label="Normal (>50%)"   value={normal.length}   valueClass="text-emerald-600"                                      sub="All good"         />
       </div>
 
-      {/* Critical alerts */}
       {critical.map((t) => (
         <Alert
           key={t.id}
-          className="border-red-500/40 bg-red-500/10 text-red-400 cursor-pointer"
+          className="border-red-200 bg-red-50 text-red-600 cursor-pointer"
           onClick={() => onSelectTruck(t.id)}
         >
           <AlertDescription>
@@ -54,26 +51,23 @@ export function FuelPage({
         </Alert>
       ))}
 
-      {/* Bar chart */}
-      <Card className="bg-slate-800/60 border-slate-700/50">
-        <CardHeader className="py-4 px-5 border-b border-slate-700/30">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">
-                Fuel Level · All Trucks
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">Sorted lowest first · click a bar for details</p>
-            </div>
-            <div className="flex gap-4 text-xs text-slate-400">
-              {[["bg-emerald-500", "Normal >50%"], ["bg-amber-500", "Low 20–50%"], ["bg-red-500", "Critical <20%"]].map(([c, l]) => (
-                <span key={l} className="flex items-center gap-1.5">
-                  <span className={cn("w-2 h-2 rounded-sm", c)} />{l}
-                </span>
-              ))}
-            </div>
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
+        <div className="py-4 px-5 border-b border-[var(--border)] flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
+              Fuel Level · All Trucks
+            </p>
+            <p className="text-xs text-[var(--subtle)] mt-0.5">Sorted lowest first · click a bar for details</p>
           </div>
-        </CardHeader>
-        <CardContent className="p-5">
+          <div className="flex gap-4 text-xs text-[var(--muted)]">
+            {[["bg-emerald-500","Normal >50%"],["bg-orange-400","Low 20–50%"],["bg-red-500","Critical <20%"]].map(([c,l]) => (
+              <span key={l} className="flex items-center gap-1.5">
+                <span className={cn("w-2 h-2 rounded-sm", c)} />{l}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="p-5">
           <div className="flex gap-4 items-end h-44">
             {sorted.map((t) => (
               <div
@@ -87,24 +81,23 @@ export function FuelPage({
                 )}>
                   {t.fuel}%
                 </span>
-                <div className="w-full bg-slate-700 rounded-lg h-32 flex items-end overflow-hidden">
+                <div className="w-full bg-[var(--surface-2)] rounded-lg h-32 flex items-end overflow-hidden">
                   <div
                     className={cn("w-full rounded-lg transition-all duration-700", fuelTw(t.fuel))}
                     style={{ height: `${t.fuel}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono">{t.id.slice(4)}</span>
+                <span className="text-[10px] text-[var(--subtle)] font-mono">{t.id.slice(4)}</span>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Detail table */}
-      <Card className="bg-slate-800/60 border-slate-700/50">
-        <CardHeader className="py-3 px-5 border-b border-slate-700/30">
-          <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">Fuel Detail · All Trucks</p>
-        </CardHeader>
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
+        <div className="py-3 px-5 border-b border-[var(--border)]">
+          <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Fuel Detail · All Trucks</p>
+        </div>
         <div>
           {sorted.map((t) => {
             const liters  = Math.round(t.fuel * 4);
@@ -114,11 +107,11 @@ export function FuelPage({
               <div
                 key={t.id}
                 onClick={() => onSelectTruck(t.id)}
-                className="flex items-center gap-4 px-5 py-3 border-b border-slate-700/20 cursor-pointer hover:bg-slate-700/30 transition-colors"
+                className="flex items-center gap-4 px-5 py-3 border-b border-[var(--border-sub)] cursor-pointer hover:bg-[var(--surface-2)] transition-colors"
               >
                 <div className="w-28 shrink-0">
-                  <p className="text-sm font-semibold text-white truncate">{t.name}</p>
-                  <p className="text-[10px] text-slate-500 font-mono">{t.id}</p>
+                  <p className="text-sm font-semibold text-[var(--text)] truncate">{t.name}</p>
+                  <p className="text-[10px] text-[var(--subtle)] font-mono">{t.id}</p>
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -126,7 +119,7 @@ export function FuelPage({
                     <span className={cn("text-xs font-mono font-bold tabular-nums shrink-0", fuelText(t.fuel))}>
                       {t.fuel}%
                     </span>
-                    <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
                       <div
                         className={cn("h-full rounded-full transition-all duration-700", fuelTw(t.fuel))}
                         style={{ width: `${t.fuel}%` }}
@@ -136,12 +129,12 @@ export function FuelPage({
                 </div>
 
                 <div className="shrink-0 text-right space-y-0.5">
-                  <p className="text-xs text-white font-mono tabular-nums">{liters} / 400 L</p>
-                  <p className="text-[10px] text-slate-500">~{range} km range</p>
+                  <p className="text-xs text-[var(--text)] font-mono tabular-nums">{liters} / 400 L</p>
+                  <p className="text-[10px] text-[var(--subtle)]">~{range} km range</p>
                 </div>
 
                 {overdue && (
-                  <span className="shrink-0 text-[10px] text-red-400 font-mono border border-red-500/30 rounded px-1.5 py-0.5">
+                  <span className="shrink-0 text-[10px] text-red-500 font-mono border border-red-200 rounded px-1.5 py-0.5 bg-red-50">
                     OVERDUE
                   </span>
                 )}
@@ -149,7 +142,7 @@ export function FuelPage({
             );
           })}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

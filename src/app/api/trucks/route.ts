@@ -96,8 +96,9 @@ export async function POST(request: Request) {
       lat:         Number(b.lat),
       lng:         Number(b.lng),
       route:       ((b.route as string | undefined) ?? "").trim(),
-      lastService: b.lastService as string,
-      nextService: b.nextService as string,
+      lastService:  b.lastService as string,
+      nextService:  b.nextService as string,
+      vehicle_type: (b.vehicle_type as "truck" | "bus" | "car" | "trailer") ?? "truck",
     };
 
     const saved = await addTruck(newTruck);

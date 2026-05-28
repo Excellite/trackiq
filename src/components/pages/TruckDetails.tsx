@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 import { StatusBadge } from "@/components/ui/status-badge";
 import { KPICard } from "@/components/ui/kpi-card";
@@ -12,8 +11,9 @@ import { FuelHistoryChart } from "@/components/charts/FuelHistoryChart";
 import { SpeedChart } from "@/components/charts/SpeedChart";
 import { NigeriaMap } from "@/components/map/NigeriaMap";
 import { useTripHistory } from "@/hooks/useTripHistory";
+import { useTruckPositions } from "@/hooks/useTruckPositions";
 
-import { Truck, genFuelHistory, genSpeedHistory } from "@/data/trucks";
+import { Truck } from "@/data/trucks";
 import { cn } from "@/lib/cn";
 import { fuelText } from "@/lib/constants";
 import type { Trip } from "@/lib/store";
@@ -21,15 +21,15 @@ import type { Trip } from "@/lib/store";
 function InfoRow({
   label,
   value,
-  valueClass = "text-white font-mono",
+  valueClass = "text-[var(--text)] font-mono",
 }: {
   label: string;
   value: string;
   valueClass?: string;
 }) {
   return (
-    <div className="flex justify-between py-2.5 border-b border-slate-700/20 text-sm">
-      <span className="text-slate-400">{label}</span>
+    <div className="flex justify-between py-2.5 border-b border-[var(--border-sub)] text-sm">
+      <span className="text-[var(--subtle)]">{label}</span>
       <span className={valueClass}>{value}</span>
     </div>
   );
@@ -59,99 +59,100 @@ function TripHistorySection({ truckId, currentTruck }: { truckId: string; curren
   const totalKm = trips.reduce((a, t) => a + t.distance_km, 0);
 
   return (
-    <Card className="bg-slate-800/60 border-slate-700/50">
-      <CardHeader className="pt-4 pb-2 px-5 border-b border-slate-700/30">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">Trip History</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {trips.length} completed · {totalKm.toFixed(1)} km total
-            </p>
-          </div>
-          {activeTrip && (
-            <span className="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 rounded px-2 py-0.5 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-              TRIP ACTIVE
-            </span>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        {loading && (
-          <div className="flex items-center justify-center h-20">
-            <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-
-        {!loading && trips.length === 0 && (
-          <p className="text-sm text-slate-500 p-5">
-            No completed trips yet. Trips are recorded automatically once the GPS tracker is connected.
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
+      <div className="pt-4 pb-2 px-5 border-b border-[var(--border)] flex items-center justify-between">
+        <div>
+          <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Trip History</p>
+          <p className="text-xs text-[var(--subtle)] mt-0.5">
+            {trips.length} completed · {totalKm.toFixed(1)} km total
           </p>
+        </div>
+        {activeTrip && (
+          <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+            TRIP ACTIVE
+          </span>
         )}
+      </div>
 
-        {trips.map((trip) => {
-          const isSelected = selectedTrip?.id === trip.id;
-          const fuelUsed = trip.fuel_start != null && trip.fuel_end != null
-            ? +(trip.fuel_start - trip.fuel_end).toFixed(1) : null;
+      {loading && (
+        <div className="flex items-center justify-center h-20">
+          <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
 
-          return (
-            <div key={trip.id}>
-              <div
-                onClick={() => handleSelectTrip(trip)}
-                className={cn(
-                  "flex items-center gap-4 px-5 py-3 border-b border-slate-700/20 cursor-pointer transition-colors",
-                  isSelected ? "bg-amber-500/5" : "hover:bg-slate-700/20"
-                )}
-              >
-                <div className="shrink-0 text-center w-10">
-                  <p className="text-xs text-slate-400">
-                    {new Date(trip.started_at).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}
-                  </p>
-                  <p className="text-[10px] text-slate-600">
-                    {new Date(trip.started_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
+      {!loading && trips.length === 0 && (
+        <p className="text-sm text-[var(--subtle)] p-5">
+          No completed trips yet. Trips are recorded automatically once the GPS tracker is connected.
+        </p>
+      )}
+
+      {trips.map((trip) => {
+        const isSelected = selectedTrip?.id === trip.id;
+        const fuelUsed = trip.fuel_start != null && trip.fuel_end != null
+          ? +(trip.fuel_start - trip.fuel_end).toFixed(1) : null;
+
+        return (
+          <div key={trip.id}>
+            <div
+              onClick={() => handleSelectTrip(trip)}
+              className={cn(
+                "flex items-center gap-4 px-5 py-3 border-b border-[var(--border-sub)] cursor-pointer transition-colors",
+                isSelected ? "bg-orange-50" : "hover:bg-[var(--surface-2)]"
+              )}
+            >
+              <div className="shrink-0 text-center w-10">
+                <p className="text-xs text-[var(--muted)]">
+                  {new Date(trip.started_at).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}
+                </p>
+                <p className="text-[10px] text-[var(--subtle)]">
+                  {new Date(trip.started_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                  <span className="text-emerald-500 font-mono">▶</span>
+                  <span className="font-mono tabular-nums">{trip.start_lat?.toFixed(3)}°, {trip.start_lng?.toFixed(3)}°</span>
+                  {trip.end_lat && (
+                    <>
+                      <span>→</span>
+                      <span className="font-mono tabular-nums">{trip.end_lat.toFixed(3)}°, {trip.end_lng?.toFixed(3)}°</span>
+                    </>
+                  )}
                 </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <span className="text-emerald-400 font-mono">▶</span>
-                    <span className="font-mono tabular-nums">{trip.start_lat?.toFixed(3)}°, {trip.start_lng?.toFixed(3)}°</span>
-                    {trip.end_lat && (
-                      <>
-                        <span>→</span>
-                        <span className="font-mono tabular-nums">{trip.end_lat.toFixed(3)}°, {trip.end_lng?.toFixed(3)}°</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex gap-3 mt-0.5 text-[11px] text-slate-500">
-                    <span>{formatDuration(trip.started_at, trip.ended_at)}</span>
-                    {fuelUsed !== null && <span>⛽ -{fuelUsed}%</span>}
-                  </div>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-mono font-bold text-white">{trip.distance_km.toFixed(1)} km</p>
-                  <p className={cn("text-[10px] font-mono", isSelected ? "text-amber-400" : "text-slate-600")}>
-                    {isSelected ? "▲ hide route" : "▼ show route"}
-                  </p>
+                <div className="flex gap-3 mt-0.5 text-[11px] text-[var(--subtle)]">
+                  <span>{formatDuration(trip.started_at, trip.ended_at)}</span>
+                  {fuelUsed !== null && <span>⛽ -{fuelUsed}%</span>}
                 </div>
               </div>
 
-              {isSelected && positions.length > 0 && (
-                <div className="h-48 border-b border-slate-700/20 bg-slate-900/40">
-                  <NigeriaMap
-                    trucks={[currentTruck]}
-                    selectedId={null}
-                    onSelect={() => {}}
-                    routePositions={positions}
-                  />
-                </div>
-              )}
+              <div className="shrink-0 text-right">
+                <p className="text-sm font-mono font-bold text-[var(--text)]">{trip.distance_km.toFixed(1)} km</p>
+                <p className={cn("text-[10px] font-mono", isSelected ? "text-orange-500" : "text-[var(--subtle)]")}>
+                  {isSelected ? "▲ hide route" : "▼ show route"}
+                </p>
+              </div>
             </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+
+            {isSelected && (
+              <div className="h-48 border-b border-[var(--border-sub)] bg-[var(--surface-2)]">
+                <NigeriaMap
+                  trucks={[currentTruck]}
+                  selectedId={null}
+                  onSelect={() => {}}
+                  routePositions={positions.length > 0 ? positions : []}
+                  routes={positions.length === 0 && trip.end_lat != null
+                    ? [{ truckId: currentTruck.id, origin: { lat: trip.start_lat, lng: trip.start_lng }, destination: { lat: trip.end_lat!, lng: trip.end_lng! } }]
+                    : []}
+                  fitRoute={positions.length === 0 && trip.end_lat != null}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -162,8 +163,7 @@ export function TruckDetails({
   truck: Truck;
   onBack: () => void;
 }) {
-  const fuelHistory = useRef(genFuelHistory(36 + truck.fuel / 10)).current;
-  const speedHistory = useRef(genSpeedHistory(truck.speed)).current;
+  const { fuelHistory, speedHistory, loading: posLoading, hasData, error: posError } = useTruckPositions(truck.id);
   const overdue = new Date(`${truck.nextService}T00:00:00`) < new Date();
 
   return (
@@ -173,14 +173,14 @@ export function TruckDetails({
           variant="outline"
           size="sm"
           onClick={onBack}
-          className="border-slate-700 text-slate-300 hover:bg-slate-700"
+          className="border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-2)]"
         >
           ← Back
         </Button>
 
         <div>
-          <h1 className="text-xl font-bold text-white">{truck.name}</h1>
-          <p className="text-xs text-slate-400 font-mono">
+          <h1 className="text-xl font-bold text-[var(--text)]">{truck.name}</h1>
+          <p className="text-xs text-[var(--subtle)] font-mono">
             {truck.plate} · {truck.model} · {truck.year}
           </p>
         </div>
@@ -191,16 +191,15 @@ export function TruckDetails({
       </div>
 
       {overdue && (
-        <Alert className="border-red-500/40 bg-red-500/10 text-red-400">
+        <Alert className="border-red-200 bg-red-50 text-red-600">
           <AlertDescription>
-            ⚠ Maintenance overdue. Last service: {truck.lastService}. Immediate
-            inspection required.
+            ⚠ Maintenance overdue. Last service: {truck.lastService}. Immediate inspection required.
           </AlertDescription>
         </Alert>
       )}
 
       {truck.fuel < 20 && (
-        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-400">
+        <Alert className="border-orange-200 bg-orange-50 text-orange-600">
           <AlertDescription>
             ⛽ Critical fuel level ({truck.fuel}%). Immediate refuel required —
             est. range: {Math.round((truck.fuel * 4 * 100) / 38)} km.
@@ -209,131 +208,117 @@ export function TruckDetails({
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-3">
-        <KPICard
-          icon="⛽"
-          label="Fuel Level"
-          value={`${truck.fuel}%`}
-          valueClass={fuelText(truck.fuel)}
-          sub="Tank: 400 L"
-        />
-        <KPICard
-          icon="🚀"
-          label="Current Speed"
-          value={`${truck.speed} km/h`}
-          valueClass={truck.speed > 90 ? "text-red-400" : "text-blue-400"}
-          sub="Limit: 100 km/h"
-        />
-        <KPICard
-          icon="📍"
-          label="Odometer"
-          value={`${truck.odometer.toLocaleString()} km`}
-          valueClass="text-blue-400"
-          sub="Total distance"
-        />
-        <KPICard
-          icon="🔧"
-          label="Next Service"
-          value={truck.nextService}
-          valueClass={overdue ? "text-red-400" : "text-amber-400"}
-          sub={overdue ? "OVERDUE" : "Scheduled"}
-        />
+        <KPICard icon="⛽" label="Fuel Level"    value={`${truck.fuel}%`}                    valueClass={fuelText(truck.fuel)}                           sub="Tank: 400 L"      />
+        <KPICard icon="🚀" label="Current Speed" value={`${truck.speed} km/h`}               valueClass={truck.speed > 90 ? "text-red-500" : "text-blue-600"} sub="Limit: 100 km/h" />
+        <KPICard icon="📍" label="Odometer"      value={`${truck.odometer.toLocaleString()} km`} valueClass="text-blue-600"                              sub="Total distance"   />
+        <KPICard icon="🔧" label="Next Service"  value={truck.nextService}                   valueClass={overdue ? "text-red-500" : "text-orange-500"}   sub={overdue ? "OVERDUE" : "Scheduled"} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card className="bg-slate-800/60 border-slate-700/50">
-          <CardHeader className="pb-0 pt-4 px-5">
-            <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">
-              Fuel Consumption · 24H
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
+          <div className="pb-0 pt-4 px-5">
+            <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
+              Fuel Level · Live History
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">L/100km vs target (38)</p>
-          </CardHeader>
-          <CardContent className="pt-3 px-5">
-            <FuelHistoryChart data={fuelHistory} />
-          </CardContent>
-        </Card>
+            <p className="text-xs text-[var(--subtle)] mt-0.5">% · from GPS tracker pings</p>
+          </div>
+          <div className="pt-3 px-5 pb-5">
+            {posLoading ? (
+              <div className="h-[180px] flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : posError ? (
+              <div className="h-[180px] flex items-center justify-center">
+                <p className="text-xs text-red-400">⚠ Could not load position data.</p>
+              </div>
+            ) : !hasData ? (
+              <div className="h-[180px] flex items-center justify-center">
+                <p className="text-xs text-[var(--subtle)]">No position data yet — connect the GPS tracker.</p>
+              </div>
+            ) : (
+              <FuelHistoryChart data={fuelHistory} />
+            )}
+          </div>
+        </div>
 
-        <Card className="bg-slate-800/60 border-slate-700/50">
-          <CardHeader className="pb-0 pt-4 px-5">
-            <p className="text-xs text-blue-400 font-mono tracking-widest uppercase">
-              Speed Profile · Last 20 Readings
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
+          <div className="pb-0 pt-4 px-5">
+            <p className="text-xs text-blue-500 font-mono tracking-widest uppercase font-semibold">
+              Speed Profile · Live History
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">km/h · real-time samples</p>
-          </CardHeader>
-          <CardContent className="pt-3 px-5">
-            <SpeedChart data={speedHistory} />
-          </CardContent>
-        </Card>
+            <p className="text-xs text-[var(--subtle)] mt-0.5">km/h · from GPS tracker pings</p>
+          </div>
+          <div className="pt-3 px-5 pb-5">
+            {posLoading ? (
+              <div className="h-[180px] flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : posError ? (
+              <div className="h-[180px] flex items-center justify-center">
+                <p className="text-xs text-red-400">⚠ Could not load position data.</p>
+              </div>
+            ) : !hasData ? (
+              <div className="h-[180px] flex items-center justify-center">
+                <p className="text-xs text-[var(--subtle)]">No position data yet — connect the GPS tracker.</p>
+              </div>
+            ) : (
+              <SpeedChart data={speedHistory} />
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card className="bg-slate-800/60 border-slate-700/50">
-          <CardHeader className="pt-4 pb-2 px-5">
-            <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
+          <div className="pt-4 pb-2 px-5 border-b border-[var(--border-sub)]">
+            <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
               Truck Information
             </p>
-          </CardHeader>
-          <CardContent className="px-5 pb-5">
-            <InfoRow label="Driver" value={truck.driver} />
-            <InfoRow
-              label="Truck ID"
-              value={truck.id}
-              valueClass="text-amber-400 font-mono tabular-nums"
-            />
-            <InfoRow label="Plate" value={truck.plate} />
-            <InfoRow label="Model" value={truck.model} />
-            <InfoRow
-              label="Route"
-              value={truck.route}
-              valueClass="text-blue-400 font-mono text-xs"
-            />
+          </div>
+          <div className="px-5 pb-5">
+            <InfoRow label="Driver"       value={truck.driver} />
+            <InfoRow label="Truck ID"     value={truck.id}     valueClass="text-orange-500 font-mono tabular-nums" />
+            <InfoRow label="Plate"        value={truck.plate} />
+            <InfoRow label="Model"        value={truck.model} />
+            <InfoRow label="Route"        value={truck.route}  valueClass="text-blue-500 font-mono text-xs" />
             <InfoRow label="Last Service" value={truck.lastService} />
             <InfoRow
               label="Next Service"
               value={truck.nextService}
-              valueClass={cn(
-                "font-mono tabular-nums",
-                overdue ? "text-red-400" : "text-emerald-400"
-              )}
+              valueClass={cn("font-mono tabular-nums", overdue ? "text-red-500" : "text-emerald-600")}
             />
-            <InfoRow
-              label="Odometer"
-              value={`${truck.odometer.toLocaleString()} km`}
-            />
+            <InfoRow label="Odometer" value={`${truck.odometer.toLocaleString()} km`} />
             <InfoRow
               label="GPS"
               value={`${truck.lat.toFixed(4)}°N, ${truck.lng.toFixed(4)}°E`}
-              valueClass="text-slate-400 font-mono text-xs tabular-nums"
+              valueClass="text-[var(--subtle)] font-mono text-xs tabular-nums"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-slate-800/60 border-slate-700/50">
-          <CardHeader className="pt-4 pb-2 px-5">
-            <p className="text-xs text-amber-400 font-mono tracking-widest uppercase">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm">
+          <div className="pt-4 pb-2 px-5 border-b border-[var(--border-sub)]">
+            <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
               Fuel Tank Status
             </p>
-          </CardHeader>
-          <CardContent className="px-5 pb-5 flex flex-col items-center gap-4">
+          </div>
+          <div className="px-5 pb-5 flex flex-col items-center gap-4">
             <FuelGauge truck={truck} />
-
-            <div className="w-full bg-slate-900/60 rounded-lg p-3 space-y-2 text-sm">
+            <div className="w-full bg-[var(--surface-2)] rounded-lg p-3 space-y-2 text-sm">
               {[
                 ["Tank Capacity", "400 L"],
                 ["Current Level", `${Math.round(truck.fuel * 4)} L (${truck.fuel}%)`],
-                ["Est. Range", `${Math.round((truck.fuel * 4 * 100) / 38)} km`],
-                ["Efficiency", "38 L/100km"],
+                ["Est. Range",    `${Math.round((truck.fuel * 4 * 100) / 38)} km`],
+                ["Efficiency",    "38 L/100km"],
               ].map(([l, v]) => (
-                <div
-                  key={l}
-                  className="flex justify-between py-1 border-b border-slate-700/20"
-                >
-                  <span className="text-slate-400">{l}</span>
-                  <span className="font-mono text-white tabular-nums">{v}</span>
+                <div key={l} className="flex justify-between py-1 border-b border-[var(--border-sub)]">
+                  <span className="text-[var(--subtle)]">{l}</span>
+                  <span className="font-mono text-[var(--text)] tabular-nums">{v}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <TripHistorySection truckId={truck.id} currentTruck={truck} />

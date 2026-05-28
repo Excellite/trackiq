@@ -52,7 +52,7 @@ const FormLabel = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<H
       <label
         ref={ref}
         htmlFor={id}
-        className={cn("block text-xs text-slate-400", className)}
+        className={cn("block text-xs font-medium text-[var(--muted)]", className)}
         {...props}
       />
     );

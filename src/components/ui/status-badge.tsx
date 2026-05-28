@@ -1,25 +1,22 @@
 import { cn } from "@/lib/cn";
 import { STATUS } from "@/lib/constants";
-import { LiveDot } from "@/components/ui/live-dot";
 
 export function StatusBadge({ status }: { status: string }) {
   const s = STATUS[status] || STATUS.offline;
+  const isMoving = status === "moving";
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono border",
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide",
         s.tw
       )}
     >
-      <LiveDot
-        pulse={status === "moving"}
-        color={
-          status === "moving"
-            ? "bg-emerald-400"
-            : status === "alert"
-            ? "bg-red-400"
-            : "bg-slate-400"
-        }
+      <span
+        className={cn(
+          "w-1.5 h-1.5 rounded-full shrink-0",
+          s.dot,
+          isMoving && "animate-pulse"
+        )}
       />
       {s.label}
     </span>
