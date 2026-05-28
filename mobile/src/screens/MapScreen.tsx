@@ -29,7 +29,7 @@ const MAP_HTML = `
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-    html,body,#map { width:100%;height:100%; background:#1a1a2e; }
+    html,body,#map { width:100%;height:100%; background:#e8e8e8; }
     .leaflet-popup-content-wrapper { border-radius:12px; padding:0; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.4); }
     .leaflet-popup-content { margin:0; }
     .leaflet-popup-tip-container { display:none; }
@@ -52,7 +52,7 @@ const MAP_HTML = `
 var map = L.map('map', { zoomControl:true, attributionControl:false })
            .setView([9.082, 8.675], 6);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   maxZoom: 19, subdomains: 'abcd'
 }).addTo(map);
 
@@ -121,14 +121,14 @@ function makeNavIcon(status, deg) {
 }
 
 function buildPopup(t) {
-  return '<div style="font-family:sans-serif;background:#1F2937;color:#fff;padding:12px 14px;min-width:160px">' +
+  return '<div style="font-family:sans-serif;background:#fff;color:#111;padding:12px 14px;min-width:160px">' +
     '<div style="font-weight:800;font-size:14px;margin-bottom:4px">' + t.name + '</div>' +
-    '<div style="color:#9CA3AF;font-size:12px;margin-bottom:6px">' + t.plate + ' &middot; ' + t.status + '</div>' +
+    '<div style="color:#6B7280;font-size:12px;margin-bottom:6px">' + t.plate + ' &middot; ' + t.status + '</div>' +
     '<div style="font-size:12px;margin-bottom:6px">&#9981; ' + t.fuel + '%&nbsp;&nbsp;&#128640; ' + t.speed + ' km/h</div>' +
     '<a href="#" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'follow\\',id:\\''+t.id+'\\'}));return false;" ' +
-    'style="display:block;text-align:center;background:#F97316;color:#fff;font-weight:700;font-size:12px;padding:6px 0;border-radius:8px;text-decoration:none;margin-bottom:6px">&#9660; Follow Route</a>' +
+    'style="display:block;text-align:center;background:#1558D6;color:#fff;font-weight:700;font-size:12px;padding:6px 0;border-radius:8px;text-decoration:none;margin-bottom:6px">&#9660; Follow Route</a>' +
     '<a href="#" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'detail\\',id:\\''+t.id+'\\'}));return false;" ' +
-    'style="display:block;text-align:center;background:#374151;color:#fff;font-weight:600;font-size:12px;padding:6px 0;border-radius:8px;text-decoration:none">View Details ›</a>' +
+    'style="display:block;text-align:center;background:#F3F4F6;color:#374151;font-weight:600;font-size:12px;padding:6px 0;border-radius:8px;text-decoration:none">View Details ›</a>' +
     '</div>';
 }
 
@@ -362,48 +362,51 @@ export function MapScreen() {
     inject(`window.updateTrucks(${JSON.stringify(data)})`);
   }, [inject]);
 
-  // Road-snap GPS pings via OSRM map-matching
-  const matchRoute = useCallback(async (pos: Position[]): Promise<Array<{ lat: number; lng: number }>> => {
-    if (pos.length < 2) return pos.map((p) => ({ lat: p.lat, lng: p.lng }));
+  // Fetch OSRM road route from trip origin to current truck position
+  const fetchRoadRoute = useCallback(async (truck: Truck): Promise<Array<{ lat: number; lng: number }>> => {
     try {
-      const res = await fetch(`${API_BASE}/api/route/match`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ positions: pos.map((p) => ({ lat: p.lat, lng: p.lng })) }),
-      });
+      // Get GPS history to find trip origin
+      const pos = await fetchTruckPositions(truck.id);
+      if (pos.length < 1) return [];
+      const origin = pos[0];
+      const dest   = { lat: truck.lat, lng: truck.lng };
+      // Route from trip start → current position along real roads
+      const res = await fetch(
+        `${API_BASE}/api/route?oLat=${origin.lat}&oLng=${origin.lng}&dLat=${dest.lat}&dLng=${dest.lng}`
+      );
       const j = await res.json();
-      return j.path ?? pos.map((p) => ({ lat: p.lat, lng: p.lng }));
+      return j.path ?? [{ lat: origin.lat, lng: origin.lng }, dest];
     } catch {
-      return pos.map((p) => ({ lat: p.lat, lng: p.lng }));
+      return [];
     }
   }, []);
 
-  // Start follow mode: load positions, road-match, then draw
+  // Start follow mode: fetch road route then draw
   const startFollow = useCallback(async (truck: Truck) => {
     setFollowMode(true);
     setFollowTruck(truck);
     setSelected(truck.id);
     try {
-      const pos     = await fetchTruckPositions(truck.id);
-      const matched = await matchRoute(pos);
+      const pos = await fetchTruckPositions(truck.id);
       setPositions(pos);
-      inject(`window.startFollowing(${JSON.stringify(truck)}, ${JSON.stringify(matched)})`);
+      const path = await fetchRoadRoute(truck);
+      inject(`window.startFollowing(${JSON.stringify(truck)}, ${JSON.stringify(path)})`);
     } catch {
       inject(`window.startFollowing(${JSON.stringify(truck)}, [])`);
     }
-  }, [inject, matchRoute]);
+  }, [inject, fetchRoadRoute]);
 
-  // Refresh positions while following
+  // Refresh route while following
   const refreshFollow = useCallback(async () => {
     if (!followTruck) return;
     try {
-      const pos     = await fetchTruckPositions(followTruck.id);
-      const matched = await matchRoute(pos);
-      setPositions(pos);
       const latest = trucks.find((t) => t.id === followTruck.id) ?? followTruck;
-      inject(`window.updateFollow(${JSON.stringify(latest)}, ${JSON.stringify(matched)})`);
-    } catch { /* silent — keep last positions */ }
-  }, [followTruck, trucks, inject, matchRoute]);
+      const pos    = await fetchTruckPositions(followTruck.id);
+      setPositions(pos);
+      const path = await fetchRoadRoute(latest);
+      inject(`window.updateFollow(${JSON.stringify(latest)}, ${JSON.stringify(path)})`);
+    } catch { /* silent */ }
+  }, [followTruck, trucks, inject, fetchRoadRoute]);
 
   const stopFollow = useCallback(() => {
     setFollowMode(false);

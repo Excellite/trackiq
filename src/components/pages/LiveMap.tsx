@@ -37,39 +37,39 @@ export function LiveMap({
   const [matchedPath,   setMatchedPath]   = useState<Array<{ lat: number; lng: number }>>([]);
   const followInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch raw GPS pings then road-match them via OSRM
-  const fetchPositions = useCallback(async (id: string) => {
+  // Fetch OSRM road route from trip origin to current truck position
+  const fetchRoadRoute = useCallback(async (truck: Truck) => {
     try {
-      const res = await fetch(`/api/trucks/${id}/positions`);
+      const res = await fetch(`/api/trucks/${truck.id}/positions`);
       const j   = await res.json();
       const raw: Position[] = j.data ?? [];
       setPositions(raw);
+      if (raw.length < 1) { setMatchedPath([]); return; }
 
-      if (raw.length < 2) {
-        setMatchedPath(raw.map((p) => ({ lat: p.lat, lng: p.lng })));
-        return;
-      }
-
-      // Road-snap the GPS trail to real road geometry
-      const mr = await fetch("/api/route/match", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ positions: raw.map((p) => ({ lat: p.lat, lng: p.lng })) }),
-      });
-      const mj = await mr.json();
-      setMatchedPath(mj.path ?? raw.map((p) => ({ lat: p.lat, lng: p.lng })));
+      const origin = raw[0];
+      const dest   = { lat: truck.lat, lng: truck.lng };
+      const rr = await fetch(
+        `/api/route?oLat=${origin.lat}&oLng=${origin.lng}&dLat=${dest.lat}&dLng=${dest.lng}`
+      );
+      const rj = await rr.json();
+      setMatchedPath(rj.path ?? [{ lat: origin.lat, lng: origin.lng }, dest]);
     } catch { /* keep last path */ }
   }, []);
 
   const startFollow = useCallback((id: string) => {
+    const truck = trucks.find((t) => t.id === id);
+    if (!truck) return;
     setFollowId(id);
     setSelId(id);
     setPositions([]);
     setMatchedPath([]);
-    fetchPositions(id);
+    fetchRoadRoute(truck);
     if (followInterval.current) clearInterval(followInterval.current);
-    followInterval.current = setInterval(() => fetchPositions(id), 10_000);
-  }, [fetchPositions]);
+    followInterval.current = setInterval(() => {
+      const t = trucks.find((x) => x.id === id);
+      if (t) fetchRoadRoute(t);
+    }, 10_000);
+  }, [trucks, fetchRoadRoute]);
 
   const stopFollow = useCallback(() => {
     setFollowId(null);
