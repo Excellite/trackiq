@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { usePoll } from "@/hooks/usePoll";
+import { LiveDot } from "@/components/ui/live-dot";
 import type { Truck } from "@/data/trucks";
 import type { MaintenanceRecord } from "@/lib/store";
 
@@ -210,7 +212,7 @@ function TruckDetail({ truck }: { truck: Truck }) {
     setLoading(false);
   }, [truck.id]);
 
-  useEffect(() => { fetchRecords(); }, [fetchRecords]);
+  const { lastUpdated } = usePoll(fetchRecords, 15_000);
 
   const handleSaved = (r: MaintenanceRecord) => {
     setRecords((p) => [r, ...p]);
@@ -225,8 +227,14 @@ function TruckDetail({ truck }: { truck: Truck }) {
       <div className="px-5 py-4 border-b border-[var(--border-sub)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-[var(--text)]">{truck.name}</p>
-            <p className="text-xs text-[var(--subtle)] font-mono mt-0.5">{truck.id} · {truck.plate} · {truck.model}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-bold text-[var(--text)]">{truck.name}</p>
+              <LiveDot pulse color="bg-emerald-500" />
+            </div>
+            <p className="text-xs text-[var(--subtle)] font-mono mt-0.5">
+              {truck.id} · {truck.plate} · {truck.model}
+              {lastUpdated && <span className="ml-1">· {lastUpdated.toLocaleTimeString("en-NG")}</span>}
+            </p>
           </div>
           <StatusChip status={status} />
         </div>
@@ -357,7 +365,10 @@ export function MaintenancePage({ trucks }: { trucks: Truck[] }) {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Maintenance</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text)]">Maintenance</h1>
+          <LiveDot pulse color="bg-emerald-500" />
+        </div>
         <p className="text-xs text-[var(--muted)] mt-0.5">Vehicle service history, due dates, and service logging</p>
       </div>
 

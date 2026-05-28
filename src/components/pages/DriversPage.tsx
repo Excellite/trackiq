@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { cn } from "@/lib/cn";
+import { usePoll } from "@/hooks/usePoll";
+import { LiveDot } from "@/components/ui/live-dot";
 import type { DriverWithStats } from "@/lib/store";
 import type { Truck } from "@/data/trucks";
 
@@ -403,18 +405,22 @@ export function DriversPage({ onSelectTruck }: { onSelectTruck: (id: string) => 
   const [search,    setSearch]    = useState("");
   const [filter,    setFilter]    = useState<"all" | "active" | "inactive">("all");
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/drivers").then((r) => r.json()),
-      fetch("/api/trucks").then((r) => r.json()),
-    ])
-      .then(([dj, tj]) => {
-        setDrivers(dj.data ?? []);
-        setTrucks(tj.data ?? []);
-      })
-      .catch((err: unknown) => setLoadError((err as Error).message ?? "Failed to load drivers"))
-      .finally(() => setLoading(false));
+  const fetchData = useCallback(async () => {
+    try {
+      const [dj, tj] = await Promise.all([
+        fetch("/api/drivers").then((r) => r.json()),
+        fetch("/api/trucks").then((r) => r.json()),
+      ]);
+      setDrivers(dj.data ?? []);
+      setTrucks(tj.data ?? []);
+    } catch (err: unknown) {
+      setLoadError((err as Error).message ?? "Failed to load drivers");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const { lastUpdated } = usePoll(fetchData, 10_000);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -441,9 +447,13 @@ export function DriversPage({ onSelectTruck }: { onSelectTruck: (id: string) => 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Drivers</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text)]">Drivers</h1>
+          <LiveDot pulse color="bg-emerald-500" />
+        </div>
         <p className="text-xs text-[var(--muted)] mt-0.5">
           {drivers.length} drivers · {active} active · {inactive} inactive
+          {lastUpdated && <span className="ml-2 text-[var(--subtle)]">· updated {lastUpdated.toLocaleTimeString("en-NG")}</span>}
         </p>
       </div>
 

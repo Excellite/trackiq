@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { cn } from "@/lib/cn";
+import { usePoll } from "@/hooks/usePoll";
+import { LiveDot } from "@/components/ui/live-dot";
 import type { Truck } from "@/data/trucks";
 
 const VEHICLE_ICONS: Record<string, string> = { truck: "🚛", bus: "🚌", car: "🚗", trailer: "🚚" };
@@ -118,13 +120,18 @@ export function DocumentsPage({ trucks }: { trucks: Truck[] }) {
   const [selected,  setSelected]  = useState<string | null>(null);
   const [filter,    setFilter]    = useState<"all" | "expired" | "warning" | "ok">("all");
 
-  useEffect(() => {
-    fetch("/api/documents")
-      .then((r) => r.json())
-      .then((j) => setDocs(j.data ?? []))
-      .catch((err: unknown) => setLoadError((err as Error).message ?? "Failed to load documents"))
-      .finally(() => setLoading(false));
+  const fetchDocs = useCallback(async () => {
+    try {
+      const j = await fetch("/api/documents").then((r) => r.json());
+      setDocs(j.data ?? []);
+    } catch (err: unknown) {
+      setLoadError((err as Error).message ?? "Failed to load documents");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const { lastUpdated } = usePoll(fetchDocs, 15_000);
 
   const docsByTruck = useMemo(() => {
     const map: Record<string, VehicleDocument[]> = {};
@@ -166,9 +173,13 @@ export function DocumentsPage({ trucks }: { trucks: Truck[] }) {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Compliance Documents</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text)]">Compliance Documents</h1>
+          <LiveDot pulse color="bg-emerald-500" />
+        </div>
         <p className="text-xs text-[var(--muted)] mt-0.5">
           {trucks.length} vehicles · {expired} with expired/critical docs · {warn} expiring soon
+          {lastUpdated && <span className="ml-2 text-[var(--subtle)]">· {lastUpdated.toLocaleTimeString("en-NG")}</span>}
         </p>
       </div>
 

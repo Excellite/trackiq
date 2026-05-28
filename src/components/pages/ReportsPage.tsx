@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { AlertTriangle, CheckCircle2, Download } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { usePoll } from "@/hooks/usePoll";
+import { LiveDot } from "@/components/ui/live-dot";
 import type { Trip } from "@/lib/store";
 import type { Truck } from "@/data/trucks";
 import type { Alert } from "@/app/api/notifications/route";
@@ -103,15 +105,17 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
   const [range,   setRange]   = useState<Range>("30d");
   const [colSort, setColSort] = useState<ColSort>("grade");
 
-  useEffect(() => {
-    Promise.all([
+  const fetchData = useCallback(async () => {
+    const [tj, aj] = await Promise.all([
       fetch("/api/trips").then((r) => r.json()),
       fetch("/api/notifications").then((r) => r.json()),
-    ]).then(([tj, aj]) => {
-      setTrips(tj.data ?? []);
-      setAlerts(aj.data ?? []);
-    }).finally(() => setLoading(false));
+    ]);
+    setTrips(tj.data ?? []);
+    setAlerts(aj.data ?? []);
+    setLoading(false);
   }, []);
+
+  const { lastUpdated } = usePoll(fetchData, 10_000);
 
   // ── indexes ──────────────────────────────────────────────────────────────────
 
@@ -206,11 +210,14 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
       {/* ── Header ────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-3 justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text)]">Fleet Report</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-[var(--text)]">Fleet Report</h1>
+            <LiveDot pulse color="bg-emerald-500" />
+          </div>
           <p className="text-sm text-[var(--muted)] mt-0.5">
             {loading
               ? "Loading…"
-              : `${moving} moving · ${offline} offline · ${completed.length} trips · ${totalKm} km — ${rangeLabel}`}
+              : `${moving} moving · ${offline} offline · ${completed.length} trips · ${totalKm} km — ${rangeLabel}${lastUpdated ? ` · ${lastUpdated.toLocaleTimeString("en-NG")}` : ""}`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap shrink-0">
