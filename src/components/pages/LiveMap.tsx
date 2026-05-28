@@ -32,37 +32,56 @@ export function LiveMap({
   const [selId,        setSelId]        = useState<string | null>(null);
   const [routes,       setRoutes]       = useState<TruckRoute[]>([]);
   const [routesErr,    setRoutesErr]    = useState<string | null>(null);
-  const [followId,     setFollowId]     = useState<string | null>(null);
-  const [positions,    setPositions]    = useState<Position[]>([]);
+  const [followId,      setFollowId]      = useState<string | null>(null);
+  const [positions,     setPositions]     = useState<Position[]>([]);
+  const [matchedPath,   setMatchedPath]   = useState<Array<{ lat: number; lng: number }>>([]);
   const followInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Fetch raw GPS pings then road-match them via OSRM
   const fetchPositions = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/trucks/${id}/positions`);
-      const j = await res.json();
-      setPositions(j.data ?? []);
-    } catch { /* keep last positions */ }
+      const j   = await res.json();
+      const raw: Position[] = j.data ?? [];
+      setPositions(raw);
+
+      if (raw.length < 2) {
+        setMatchedPath(raw.map((p) => ({ lat: p.lat, lng: p.lng })));
+        return;
+      }
+
+      // Road-snap the GPS trail to real road geometry
+      const mr = await fetch("/api/route/match", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ positions: raw.map((p) => ({ lat: p.lat, lng: p.lng })) }),
+      });
+      const mj = await mr.json();
+      setMatchedPath(mj.path ?? raw.map((p) => ({ lat: p.lat, lng: p.lng })));
+    } catch { /* keep last path */ }
   }, []);
 
   const startFollow = useCallback((id: string) => {
     setFollowId(id);
     setSelId(id);
     setPositions([]);
+    setMatchedPath([]);
     fetchPositions(id);
     if (followInterval.current) clearInterval(followInterval.current);
-    followInterval.current = setInterval(() => fetchPositions(id), 5_000);
+    followInterval.current = setInterval(() => fetchPositions(id), 10_000);
   }, [fetchPositions]);
 
   const stopFollow = useCallback(() => {
     setFollowId(null);
     setPositions([]);
+    setMatchedPath([]);
     if (followInterval.current) { clearInterval(followInterval.current); followInterval.current = null; }
   }, []);
 
   useEffect(() => () => { if (followInterval.current) clearInterval(followInterval.current); }, []);
 
-  const followTruck = trucks.find((t) => t.id === followId) ?? null;
-  const followLatLngs = useMemo(() => positions.map((p) => ({ lat: p.lat, lng: p.lng })), [positions]);
+  const followTruck   = trucks.find((t) => t.id === followId) ?? null;
+  const followLatLngs = matchedPath;
   const routeKm = useMemo(() => {
     if (positions.length < 2) return 0;
     let d = 0;
