@@ -278,7 +278,7 @@ export function VehicleRegistration({ onNav }: { onNav?: (id: string) => void })
                   <FormItem>
                     <FormLabel>Vehicle Type</FormLabel>
                     <FormControl>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {VEHICLE_TYPES.map((type) => (
                           <button key={type} type="button" onClick={() => field.onChange(type)}
                             className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition-all
@@ -375,7 +375,7 @@ export function VehicleRegistration({ onNav }: { onNav?: (id: string) => void })
             {step === 2 && (
               <div className="space-y-4">
                 {/* Mode selector */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {([
                     ["none",     "Skip for now",     "Assign later from Drivers page"],
                     ["existing", "Pick a driver",    "Choose from your driver list"],
