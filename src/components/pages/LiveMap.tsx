@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { FleetMap, TruckRoute } from "@/components/map/FleetMap";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -10,6 +10,17 @@ import { fuelText } from "@/lib/constants";
 import type { Truck } from "@/data/trucks";
 import type { Trip } from "@/lib/store";
 
+interface Position { lat: number; lng: number; speed: number; fuel: number; recorded_at: string }
+
+function haversineKm(a: Position, b: Position) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
 export function LiveMap({
   trucks,
   onSelectTruck,
@@ -17,9 +28,46 @@ export function LiveMap({
   trucks: Truck[];
   onSelectTruck: (id: string) => void;
 }) {
-  const [selId,      setSelId]      = useState<string | null>(null);
-  const [routes,     setRoutes]     = useState<TruckRoute[]>([]);
-  const [routesErr,  setRoutesErr]  = useState<string | null>(null);
+  const [selId,        setSelId]        = useState<string | null>(null);
+  const [routes,       setRoutes]       = useState<TruckRoute[]>([]);
+  const [routesErr,    setRoutesErr]    = useState<string | null>(null);
+  const [followId,     setFollowId]     = useState<string | null>(null);
+  const [positions,    setPositions]    = useState<Position[]>([]);
+  const followInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchPositions = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/trucks/${id}/positions`);
+      const j = await res.json();
+      setPositions(j.data ?? []);
+    } catch { /* keep last positions */ }
+  }, []);
+
+  const startFollow = useCallback((id: string) => {
+    setFollowId(id);
+    setSelId(id);
+    setPositions([]);
+    fetchPositions(id);
+    if (followInterval.current) clearInterval(followInterval.current);
+    followInterval.current = setInterval(() => fetchPositions(id), 5_000);
+  }, [fetchPositions]);
+
+  const stopFollow = useCallback(() => {
+    setFollowId(null);
+    setPositions([]);
+    if (followInterval.current) { clearInterval(followInterval.current); followInterval.current = null; }
+  }, []);
+
+  useEffect(() => () => { if (followInterval.current) clearInterval(followInterval.current); }, []);
+
+  const followTruck = trucks.find((t) => t.id === followId) ?? null;
+  const followLatLngs = useMemo(() => positions.map((p) => ({ lat: p.lat, lng: p.lng })), [positions]);
+  const routeKm = useMemo(() => {
+    if (positions.length < 2) return 0;
+    let d = 0;
+    for (let i = 1; i < positions.length; i++) d += haversineKm(positions[i - 1], positions[i]);
+    return d;
+  }, [positions]);
 
   const selTruck = trucks.find((t) => t.id === selId) ?? null;
   const moving   = trucks.filter((t) => t.status === "moving").length;
@@ -104,23 +152,32 @@ export function LiveMap({
                   <span className={cn("w-2 h-2 rounded-full", c)} />{l}
                 </span>
               ))}
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-blue-400 rounded" />Route
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />Start
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-400" />End
-              </span>
+              {followId ? (
+                <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+                  <span className="w-3 h-1 bg-blue-500 rounded" />Following
+                </span>
+              ) : (
+                <>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-0.5 bg-blue-400 rounded" />Route
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />Start
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <div className="h-[300px] sm:h-[420px] lg:h-[520px]">
             <FleetMap
               trucks={trucks}
               selectedId={selId}
-              routes={routes}
-              onSelect={(id) => setSelId(selId === id ? null : id)}
+              routes={followId ? [] : routes}
+              followPositions={followLatLngs}
+              onSelect={(id) => {
+                setSelId(selId === id ? null : id);
+                if (followId) stopFollow();
+              }}
             />
           </div>
         </div>
@@ -146,8 +203,59 @@ export function LiveMap({
             ))}
           </div>
 
-          {/* Selected truck detail */}
-          {selTruck ? (
+          {/* Follow mode — navigation bar */}
+          {followTruck ? (
+            <div className="bg-[var(--surface)] border-2 border-blue-500 rounded-xl p-4 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-mono text-blue-400 uppercase tracking-widest font-semibold mb-0.5">Following</p>
+                  <p className="text-sm font-bold text-[var(--text)]">{followTruck.name}</p>
+                </div>
+                <StatusBadge status={followTruck.status} />
+              </div>
+
+              {/* Live stats */}
+              <div className="grid grid-cols-3 divide-x divide-[var(--border)] text-center">
+                {[
+                  { val: followTruck.speed, unit: "km/h",   label: "Speed"    },
+                  { val: routeKm.toFixed(1), unit: "km",    label: "Trail"    },
+                  { val: positions.length,   unit: "pings", label: "History"  },
+                ].map(({ val, unit, label }) => (
+                  <div key={label} className="px-2 py-1">
+                    <p className="text-lg font-bold font-mono text-[var(--text)] leading-none">{val}</p>
+                    <p className="text-[10px] text-[var(--subtle)] mt-0.5">{unit}</p>
+                    <p className="text-[9px] text-[var(--muted)] uppercase tracking-wide">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* GPS */}
+              {positions.length > 0 && (
+                <p className="text-[10px] font-mono text-[var(--subtle)] text-center">
+                  {positions[positions.length - 1].lat.toFixed(5)}°N &nbsp;
+                  {positions[positions.length - 1].lng.toFixed(5)}°E
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => onSelectTruck(followTruck.id)}
+                  className="flex-1 bg-[var(--surface-2)] hover:bg-[var(--border)] text-[var(--text)] text-xs font-semibold border border-[var(--border)]"
+                >
+                  Details
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={stopFollow}
+                  className="flex-1 bg-red-900/40 hover:bg-red-900/60 text-red-400 border border-red-800 text-xs font-semibold"
+                >
+                  ✕ Exit Follow
+                </Button>
+              </div>
+            </div>
+
+          ) : selTruck ? (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 space-y-3 shadow-sm">
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -179,13 +287,22 @@ export function LiveMap({
                 <FuelBar pct={selTruck.fuel} />
               </div>
 
-              <Button
-                size="sm"
-                onClick={() => onSelectTruck(selTruck.id)}
-                className="w-full bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold"
-              >
-                View Full Details →
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => startFollow(selTruck.id)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+                >
+                  ▶ Follow Route
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => onSelectTruck(selTruck.id)}
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold"
+                >
+                  Details →
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 text-center shadow-sm">
@@ -200,20 +317,33 @@ export function LiveMap({
             </div>
             <div className="max-h-52 overflow-y-auto">
               {trucks.map((t) => (
-                <button
+                <div
                   key={t.id}
-                  onClick={() => setSelId(t.id)}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-sub)] text-left transition-colors hover:bg-[var(--surface-2)]",
-                    selId === t.id && "bg-orange-50"
+                    "flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-sub)] transition-colors hover:bg-[var(--surface-2)]",
+                    selId === t.id && "bg-blue-500/5",
+                    followId === t.id && "bg-blue-500/10 border-l-2 border-l-blue-500"
                   )}
                 >
-                  <div>
+                  <button className="flex-1 text-left" onClick={() => { setSelId(t.id); if (followId) stopFollow(); }}>
                     <p className="text-xs font-semibold text-[var(--text)]">{t.name}</p>
-                    <p className="text-[10px] text-[var(--subtle)] font-mono">{t.id}</p>
+                    <p className="text-[10px] text-[var(--subtle)] font-mono">{t.driver || t.id}</p>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={t.status} />
+                    <button
+                      onClick={() => followId === t.id ? stopFollow() : startFollow(t.id)}
+                      className={cn(
+                        "text-[10px] font-semibold px-2 py-1 rounded transition-colors",
+                        followId === t.id
+                          ? "bg-blue-500/20 text-blue-400 hover:bg-red-500/20 hover:text-red-400"
+                          : "bg-[var(--surface-2)] text-[var(--muted)] hover:bg-blue-500/20 hover:text-blue-400"
+                      )}
+                    >
+                      {followId === t.id ? "Exit" : "Follow"}
+                    </button>
                   </div>
-                  <StatusBadge status={t.status} />
-                </button>
+                </div>
               ))}
             </div>
           </div>

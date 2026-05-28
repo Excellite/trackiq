@@ -182,7 +182,7 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
 
   const sortedFleet = useMemo(() => {
     const rows = [...fleetRows];
-    if (colSort === "grade")    return rows.sort((a, b) => GRADE_ORDER[b.grade] - GRADE_ORDER[a.grade]);
+    if (colSort === "grade")    return rows.sort((a, b) => GRADE_ORDER[a.grade] - GRADE_ORDER[b.grade]);
     if (colSort === "trips")    return rows.sort((a, b) => b.trips - a.trips);
     if (colSort === "distance") return rows.sort((a, b) => b.km - a.km);
     if (colSort === "fuel")     return rows.sort((a, b) => a.fuel - b.fuel);

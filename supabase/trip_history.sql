@@ -35,3 +35,14 @@ create index if not exists idx_trips_truck
 
 alter table truck_positions disable row level security;
 alter table trips           disable row level security;
+
+-- Atomic distance accumulator called by the GPS tracker webhook on every ping
+create or replace function increment_trip_distance(trip_id bigint, add_km numeric)
+returns void
+language sql
+security definer
+as $$
+  update trips
+  set distance_km = distance_km + add_km
+  where id = trip_id;
+$$;

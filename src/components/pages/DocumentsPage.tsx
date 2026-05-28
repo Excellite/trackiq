@@ -158,6 +158,7 @@ export function DocumentsPage({ trucks }: { trucks: Truck[] }) {
   const warn    = trucks.filter((t) => worstStatus(docsByTruck[t.id] ?? []) === "warning").length;
 
   const deleteDoc = async (id: string) => {
+    if (!confirm("Remove this document? This cannot be undone.")) return;
     await fetch(`/api/documents?id=${id}`, { method: "DELETE" });
     setDocs((p) => p.filter((d) => d.id !== id));
   };

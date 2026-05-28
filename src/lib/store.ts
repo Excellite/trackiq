@@ -377,19 +377,27 @@ export async function getDriversWithStats(): Promise<DriverWithStats[]> {
 }
 
 export async function reassignDriver(driverId: string, newTruckId: string | null): Promise<void> {
-  // Update driver's assigned_truck_id
+  // Find old assignment before updating so we can clear the old truck
+  const { data: existing } = await supabase
+    .from("drivers")
+    .select("name, assigned_truck_id")
+    .eq("id", driverId)
+    .single();
+
   const { error: dErr } = await supabase
     .from("drivers")
     .update({ assigned_truck_id: newTruckId })
     .eq("id", driverId);
   if (dErr) throw new Error(dErr.message);
 
-  // Update the truck's driver name (or clear it)
-  if (newTruckId) {
-    const { data: driver } = await supabase.from("drivers").select("name").eq("id", driverId).single();
-    if (driver) {
-      await supabase.from("trucks").update({ driver: (driver as { name: string }).name }).eq("id", newTruckId);
-    }
+  // Clear driver name from old truck (if it changed)
+  if (existing?.assigned_truck_id && existing.assigned_truck_id !== newTruckId) {
+    await supabase.from("trucks").update({ driver: "" }).eq("id", existing.assigned_truck_id);
+  }
+
+  // Set driver name on new truck
+  if (newTruckId && existing?.name) {
+    await supabase.from("trucks").update({ driver: existing.name }).eq("id", newTruckId);
   }
 }
 

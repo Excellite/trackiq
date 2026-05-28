@@ -8,7 +8,7 @@ import {
   Polyline,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Truck } from "@/data/trucks";
 
 const NIGERIA = { lat: 9.08, lng: 8.68 };
@@ -76,6 +76,47 @@ function FitBounds({ positions }: { positions: Array<{ lat: number; lng: number 
   return null;
 }
 
+// Keeps the camera locked onto the last GPS point while in follow mode
+function CameraFollow({ positions }: { positions: Array<{ lat: number; lng: number }> }) {
+  const map = useMap();
+  const initialised = useRef(false);
+  const last = positions[positions.length - 1];
+
+  useEffect(() => {
+    if (!map || !last) return;
+    if (!initialised.current) {
+      // First activation — fit the full trail then zoom into the truck
+      if (positions.length > 1) {
+        const bounds = new google.maps.LatLngBounds();
+        positions.forEach((p) => bounds.extend(p));
+        map.fitBounds(bounds, 80);
+        // After fit, zoom closer to the truck head
+        setTimeout(() => map.setZoom(14), 600);
+      } else {
+        map.panTo(last);
+        map.setZoom(14);
+      }
+      initialised.current = true;
+    } else {
+      map.panTo(last);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [last?.lat, last?.lng]);
+
+  return null;
+}
+
+function headDotIcon(): google.maps.Symbol {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: "#fff",
+    fillOpacity: 1,
+    strokeColor: "#4285F4",
+    strokeWeight: 4,
+    scale: 10,
+  };
+}
+
 function TruckRoute({ route, color, fitMap = false }: { route: TruckRoute; color: string; fitMap?: boolean }) {
   const [path, setPath] = useState<Array<{ lat: number; lng: number }>>([]);
   const map = useMap();
@@ -114,6 +155,7 @@ export function FleetMap({
   onSelect,
   routes = [],
   routePositions = [],
+  followPositions = [],
   zoom = 6,
   fitRoute = false,
 }: {
@@ -122,6 +164,7 @@ export function FleetMap({
   onSelect: (id: string) => void;
   routes?: TruckRoute[];
   routePositions?: Array<{ lat: number; lng: number }>;
+  followPositions?: Array<{ lat: number; lng: number }>;
   zoom?: number;
   fitRoute?: boolean;
 }) {
@@ -163,6 +206,25 @@ export function FleetMap({
             <Polyline path={routePositions} strokeColor="#F59E0B" strokeOpacity={0.9} strokeWeight={3} geodesic />
             <Marker position={routePositions[0]} icon={pinIcon("#22C55E", 7)} title="Start" />
             <Marker position={routePositions[routePositions.length - 1]} icon={pinIcon("#F59E0B", 7)} title="End" />
+          </>
+        )}
+
+        {/* Follow mode — Google Maps style thick blue route trail */}
+        {followPositions.length > 0 && (
+          <>
+            <CameraFollow positions={followPositions} />
+            {followPositions.length > 1 && (
+              <>
+                {/* Dark navy outline — drawn first, wider */}
+                <Polyline path={followPositions} strokeColor="#1A3A6E" strokeWeight={14} strokeOpacity={0.95} geodesic />
+                {/* Bright blue fill — narrower, on top */}
+                <Polyline path={followPositions} strokeColor="#4285F4" strokeWeight={9}  strokeOpacity={1}    geodesic />
+              </>
+            )}
+            {/* Origin dot */}
+            <Marker position={followPositions[0]} icon={pinIcon("#4285F4", 8)} title="Journey start" zIndex={8} />
+            {/* Head dot — white circle with blue ring at truck's latest point */}
+            <Marker position={followPositions[followPositions.length - 1]} icon={headDotIcon()} title="Current position" zIndex={9} />
           </>
         )}
 
