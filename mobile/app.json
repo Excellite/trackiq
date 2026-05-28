@@ -18,7 +18,10 @@
         "NSLocationWhenInUseUsageDescription": "TrackIQ needs location to track your vehicle position.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "TrackIQ needs background location to log trips automatically."
       },
-      "backgroundModes": ["location", "fetch"]
+      "backgroundModes": [
+        "location",
+        "fetch"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +34,9 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
@@ -42,6 +47,12 @@
         }
       ],
       "expo-task-manager"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "43793dbc-aebd-4543-856a-79a0b1808937"
+      }
+    },
+    "owner": "excellite"
   }
 }
