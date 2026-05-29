@@ -21,6 +21,10 @@ export function FuelPage({
     ? (trucks.reduce((a, t) => a + t.fuel, 0) / trucks.length).toFixed(1)
     : "0";
 
+  const DIESEL_NGN = 1_250;
+  const TANK_L     = 400;
+  const BASE_L100: Record<string, number> = { truck: 42, trailer: 52, bus: 28, car: 13 };
+
   const sorted = [...trucks].sort((a, b) => a.fuel - b.fuel);
 
   // Efficiency leaderboard: estimate L/100km by vehicle type + speed
@@ -119,18 +123,21 @@ export function FuelPage({
         </div>
         <div>
           {sorted.map((t) => {
-            const liters  = Math.round(t.fuel * 4);
-            const range   = Math.round((t.fuel * 4 * 100) / 38);
-            const overdue = new Date(`${t.nextService}T00:00:00`) < new Date();
+            const liters      = Math.round(t.fuel * TANK_L / 100);
+            const l100        = BASE_L100[t.vehicle_type] ?? 38;
+            const range       = Math.round(liters * 100 / l100);
+            const refuelCost  = Math.round((1 - t.fuel / 100) * TANK_L * DIESEL_NGN);
+            const costPerKm   = Math.round(l100 * DIESEL_NGN / 100);
+            const overdue     = t.nextService && new Date(`${t.nextService}T00:00:00`) < new Date();
             return (
               <div
                 key={t.id}
                 onClick={() => onSelectTruck(t.id)}
-                className="flex items-center gap-4 px-5 py-3 border-b border-[var(--border-sub)] cursor-pointer hover:bg-[var(--surface-2)] transition-colors"
+                className="flex items-center gap-3 px-5 py-3 border-b border-[var(--border-sub)] cursor-pointer hover:bg-[var(--surface-2)] transition-colors"
               >
                 <div className="w-28 shrink-0">
                   <p className="text-sm font-semibold text-[var(--text)] truncate">{t.name}</p>
-                  <p className="text-[10px] text-[var(--subtle)] font-mono">{t.id}</p>
+                  <p className="text-[10px] text-[var(--subtle)] font-mono">{t.id} · {t.vehicle_type}</p>
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -139,22 +146,22 @@ export function FuelPage({
                       {t.fuel}%
                     </span>
                     <div className="flex-1 h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full transition-all duration-700", fuelTw(t.fuel))}
-                        style={{ width: `${t.fuel}%` }}
-                      />
+                      <div className={cn("h-full rounded-full transition-all duration-700", fuelTw(t.fuel))} style={{ width: `${t.fuel}%` }} />
                     </div>
                   </div>
+                  <p className="text-[10px] text-[var(--muted)] font-mono">{liters} / {TANK_L} L &nbsp;·&nbsp; ~{range} km range</p>
                 </div>
 
-                <div className="shrink-0 text-right space-y-0.5">
-                  <p className="text-xs text-[var(--text)] font-mono tabular-nums">{liters} / 400 L</p>
-                  <p className="text-[10px] text-[var(--subtle)]">~{range} km range</p>
+                <div className="shrink-0 text-right space-y-0.5 hidden sm:block">
+                  <p className="text-xs font-mono font-semibold text-orange-500">
+                    ₦{refuelCost.toLocaleString()} to fill
+                  </p>
+                  <p className="text-[10px] text-[var(--subtle)] font-mono">₦{costPerKm}/km · {l100} L/100km</p>
                 </div>
 
                 {overdue && (
                   <span className="shrink-0 text-[10px] text-red-500 font-mono border border-red-200 rounded px-1.5 py-0.5 bg-red-50">
-                    OVERDUE
+                    SVC OVERDUE
                   </span>
                 )}
               </div>

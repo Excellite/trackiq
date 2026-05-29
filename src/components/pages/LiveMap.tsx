@@ -9,8 +9,24 @@ import { FuelBar } from "@/components/ui/fuel-bar";
 import { LiveDot } from "@/components/ui/live-dot";
 import { cn } from "@/lib/cn";
 import { fuelText } from "@/lib/constants";
+import { checkGeofence } from "@/lib/geofence";
 import type { Truck } from "@/data/trucks";
 import type { Trip } from "@/lib/store";
+
+const DIESEL_NGN = 1_250;
+const TANK_L     = 400;
+const BASE_L100: Record<string, number> = { truck: 42, trailer: 52, bus: 28, car: 13 };
+
+function rangeKm(t: Truck)     { return Math.round((t.fuel * TANK_L / 100) * 100 / (BASE_L100[t.vehicle_type] ?? 38)); }
+function costPer100(t: Truck)  { return Math.round((BASE_L100[t.vehicle_type] ?? 38) * DIESEL_NGN / 100 * 100); } // ₦/100km
+function maintStatus(t: Truck) {
+  const today = new Date().toISOString().split("T")[0];
+  if (!t.nextService) return { label: "Unknown", cls: "text-[var(--subtle)]" };
+  if (t.nextService < today) return { label: "OVERDUE", cls: "text-red-600 font-bold" };
+  const days = (new Date(t.nextService).getTime() - Date.now()) / 86_400_000;
+  if (days <= 14) return { label: `Due in ${Math.round(days)}d`, cls: "text-orange-500 font-semibold" };
+  return { label: t.nextService, cls: "text-[var(--subtle)]" };
+}
 
 interface Position { lat: number; lng: number; speed: number; fuel: number; recorded_at: string }
 
@@ -337,47 +353,57 @@ export function LiveMap({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-[var(--text)]">{selTruck.name}</p>
-                  <p className="text-xs text-[var(--subtle)] font-mono">{selTruck.id}</p>
+                  <p className="text-[10px] text-[var(--subtle)] font-mono">{selTruck.id} · {selTruck.plate}</p>
                 </div>
                 <StatusBadge status={selTruck.status} />
               </div>
 
               <div className="space-y-1.5 text-xs">
-                {[
-                  ["Driver", selTruck.driver,                  "text-[var(--text)]"],
-                  ["Route",  selTruck.route,                   "text-blue-600 font-mono text-[10px]"],
-                  ["Speed",  `${selTruck.speed} km/h`,         selTruck.speed > 90 ? "text-red-500 font-mono" : "text-[var(--text)] font-mono"],
-                  ["GPS",    `${selTruck.lat.toFixed(3)}°N  ${selTruck.lng.toFixed(3)}°E`, "text-[var(--subtle)] font-mono text-[10px]"],
-                ].map(([label, val, cls]) => (
+                {([
+                  ["Driver",   selTruck.driver || "—",          "text-[var(--text)]"],
+                  ["Route",    selTruck.route  || "—",          "text-blue-500 font-mono text-[10px]"],
+                  ["Speed",    `${selTruck.speed} km/h${selTruck.speed > 100 ? " ⚠ OVER LIMIT" : ""}`,
+                               selTruck.speed > 100 ? "text-red-500 font-bold font-mono" : "text-[var(--text)] font-mono"],
+                  ["Range",    `~${rangeKm(selTruck)} km remaining`,
+                               rangeKm(selTruck) < 100 ? "text-orange-500 font-mono" : "text-[var(--text)] font-mono"],
+                  ["Cost/km",  `₦${(costPer100(selTruck)/100).toFixed(0)}/km  (₦${costPer100(selTruck).toLocaleString()}/100km)`,
+                               "text-[var(--muted)] font-mono text-[10px]"],
+                  ["Service",  maintStatus(selTruck).label,     maintStatus(selTruck).cls],
+                  ["Zone",     checkGeofence(selTruck.id, selTruck.lat, selTruck.lng)?.breached
+                                 ? "⚠ Outside assigned zone" : "✓ Within zone",
+                               checkGeofence(selTruck.id, selTruck.lat, selTruck.lng)?.breached
+                                 ? "text-orange-500 font-semibold" : "text-emerald-600"],
+                  ["GPS",      `${selTruck.lat.toFixed(4)}°N  ${selTruck.lng.toFixed(4)}°E`,
+                               "text-[var(--subtle)] font-mono text-[10px]"],
+                ] as [string, string, string][]).map(([label, val, cls]) => (
                   <div key={label} className="flex justify-between gap-2">
                     <span className="text-[var(--subtle)] shrink-0">{label}</span>
-                    <span className={cn("text-right", cls)}>{val}</span>
+                    <span className={cn("text-right truncate max-w-[58%]", cls)}>{val}</span>
                   </div>
                 ))}
               </div>
 
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[var(--subtle)]">Fuel</span>
+                  <span className="text-[var(--subtle)]">Fuel — {Math.round(selTruck.fuel * TANK_L / 100)} L / {TANK_L} L</span>
                   <span className={cn("font-mono font-bold", fuelText(selTruck.fuel))}>{selTruck.fuel}%</span>
                 </div>
                 <FuelBar pct={selTruck.fuel} />
+                {selTruck.fuel < 25 && (
+                  <p className="text-[10px] text-orange-500 mt-0.5">
+                    Refuel cost: ₦{Math.round((1 - selTruck.fuel / 100) * TANK_L * DIESEL_NGN).toLocaleString()}
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => startFollow(selTruck.id)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
-                >
-                  ▶ Follow Route
+                <Button size="sm" onClick={() => startFollow(selTruck.id)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">
+                  ▶ Follow
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => onSelectTruck(selTruck.id)}
-                  className="flex-1 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold"
-                >
-                  Details →
+                <Button size="sm" onClick={() => onSelectTruck(selTruck.id)}
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold">
+                  Full Details →
                 </Button>
               </div>
             </div>

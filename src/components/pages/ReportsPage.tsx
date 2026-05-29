@@ -199,9 +199,21 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
   const totalKm   = +completed.reduce((a, t) => a + t.distance_km, 0).toFixed(1);
   const moving    = trucks.filter((t) => t.status === "moving").length;
   const offline   = trucks.filter((t) => t.status === "offline").length;
+  const idle      = trucks.filter((t) => t.status === "idle").length;
   const avgFuel   = trucks.length ? +(trucks.reduce((a, t) => a + t.fuel, 0) / trucks.length).toFixed(0) : 0;
   const criticals = alerts.filter((a) => a.severity === "critical");
   const warnings  = alerts.filter((a) => a.severity === "warning");
+
+  // Operational-manager metrics
+  const today        = new Date().toISOString().split("T")[0];
+  const overdueCount = trucks.filter((t) => t.nextService && t.nextService < today).length;
+  const operational  = trucks.length - offline;
+  const utilization  = operational > 0 ? Math.round((moving / operational) * 100) : 0;
+  const maintComp    = trucks.length ? Math.round(((trucks.length - overdueCount) / trucks.length) * 100) : 100;
+  const speedViol    = trucks.filter((t) => t.speed > 100).length;
+  const avgSpeed     = moving
+    ? Math.round(trucks.filter((t) => t.status === "moving").reduce((s, t) => s + t.speed, 0) / moving)
+    : 0;
   const rangeLabel = { week: "this week", month: "this month", "30d": "last 30 days", all: "all time" }[range];
 
   return (
@@ -275,6 +287,129 @@ export function ReportsPage({ trucks, onSelectTruck }: { trucks: Truck[]; onSele
             <p className={cn("text-xl font-bold mt-0.5", hl ? "text-orange-500" : "text-[var(--text)]")}>{value}</p>
           </div>
         ))}
+      </div>
+
+      {/* ── Industry Benchmark Comparison ─────────────────────────────────────── */}
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-[var(--border-sub)] flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">
+              Industry Benchmark Comparison
+            </p>
+            <p className="text-xs text-[var(--muted)] mt-0.5">
+              Nigerian commercial fleet standards — FRSC &amp; NLA guidelines
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-[var(--border-sub)] bg-[var(--surface-2)]">
+                {["Metric", "Your Fleet", "Industry Benchmark", "Variance", "Status"].map((h) => (
+                  <th key={h} className="text-left px-5 py-2.5 font-semibold text-[var(--subtle)] whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                {
+                  metric: "Fleet Utilisation",
+                  actual: `${utilization}%`,
+                  actualNum: utilization,
+                  benchmark: "75 – 85%",
+                  benchMin: 75, benchMax: 85,
+                  unit: "%",
+                  higherIsBetter: true,
+                },
+                {
+                  metric: "Maintenance Compliance",
+                  actual: `${maintComp}%`,
+                  actualNum: maintComp,
+                  benchmark: "≥ 95%",
+                  benchMin: 95, benchMax: 100,
+                  unit: "%",
+                  higherIsBetter: true,
+                },
+                {
+                  metric: "Average Fuel Level",
+                  actual: `${avgFuel}%`,
+                  actualNum: +avgFuel,
+                  benchmark: "≥ 50%",
+                  benchMin: 50, benchMax: 100,
+                  unit: "%",
+                  higherIsBetter: true,
+                },
+                {
+                  metric: "Speed Violations",
+                  actual: `${speedViol} vehicles`,
+                  actualNum: speedViol,
+                  benchmark: "0 vehicles",
+                  benchMin: 0, benchMax: 0,
+                  unit: "",
+                  higherIsBetter: false,
+                },
+                {
+                  metric: "Fleet Availability",
+                  actual: `${operational}/${trucks.length} (${trucks.length ? Math.round(operational/trucks.length*100) : 0}%)`,
+                  actualNum: trucks.length ? Math.round(operational/trucks.length*100) : 0,
+                  benchmark: "≥ 90%",
+                  benchMin: 90, benchMax: 100,
+                  unit: "%",
+                  higherIsBetter: true,
+                },
+                {
+                  metric: "Avg Operating Speed",
+                  actual: avgSpeed > 0 ? `${avgSpeed} km/h` : "N/A",
+                  actualNum: avgSpeed,
+                  benchmark: "60 – 100 km/h",
+                  benchMin: 60, benchMax: 100,
+                  unit: "km/h",
+                  higherIsBetter: null,
+                },
+              ] as Array<{
+                metric: string; actual: string; actualNum: number;
+                benchmark: string; benchMin: number; benchMax: number;
+                unit: string; higherIsBetter: boolean | null;
+              }>).map(({ metric, actual, actualNum, benchmark, benchMin, benchMax, higherIsBetter }) => {
+                let status: "good" | "warn" | "bad" | "neutral";
+                if (higherIsBetter === null) {
+                  status = actualNum >= benchMin && actualNum <= benchMax ? "good" : "warn";
+                } else if (higherIsBetter) {
+                  status = actualNum >= benchMin ? "good" : actualNum >= benchMin * 0.85 ? "warn" : "bad";
+                } else {
+                  status = actualNum <= benchMax ? "good" : actualNum <= benchMax + 2 ? "warn" : "bad";
+                }
+                const delta = higherIsBetter === null ? null
+                  : higherIsBetter ? actualNum - benchMin
+                  : benchMax - actualNum;
+                const statusCfg = {
+                  good:    { label: "On Target",  cls: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+                  warn:    { label: "Below Par",  cls: "text-orange-600 bg-orange-50 border-orange-200"   },
+                  bad:     { label: "Action Req", cls: "text-red-600 bg-red-50 border-red-200"            },
+                  neutral: { label: "—",          cls: "text-[var(--subtle)] bg-[var(--surface-2)] border-[var(--border)]" },
+                }[status];
+                return (
+                  <tr key={metric} className="border-b border-[var(--border-sub)] hover:bg-[var(--surface-2)]">
+                    <td className="px-5 py-3 font-medium text-[var(--text)]">{metric}</td>
+                    <td className="px-5 py-3 font-mono font-bold text-[var(--text)]">{actual}</td>
+                    <td className="px-5 py-3 text-[var(--subtle)]">{benchmark}</td>
+                    <td className="px-5 py-3 font-mono">
+                      {delta == null ? <span className="text-[var(--subtle)]">—</span>
+                        : delta >= 0
+                        ? <span className="text-emerald-600">+{delta.toFixed(0)}</span>
+                        : <span className="text-red-500">{delta.toFixed(0)}</span>}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-lg border", statusCfg.cls)}>
+                        {statusCfg.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ── Alerts + Active trips ──────────────────────────────────────────────── */}
