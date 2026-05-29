@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { FleetMap, TruckRoute } from "@/components/map/FleetMap";
+import { StreetViewOverlay } from "@/components/map/StreetViewOverlay";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FuelBar } from "@/components/ui/fuel-bar";
 import { LiveDot } from "@/components/ui/live-dot";
@@ -35,6 +36,7 @@ export function LiveMap({
   const [followId,      setFollowId]      = useState<string | null>(null);
   const [positions,     setPositions]     = useState<Position[]>([]);
   const [matchedPath,   setMatchedPath]   = useState<Array<{ lat: number; lng: number }>>([]);
+  const [streetView,    setStreetView]    = useState(false);
   const followInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch OSRM road route from trip origin to current truck position
@@ -141,6 +143,15 @@ export function LiveMap({
   }, [trucks]);
 
   return (
+    <>
+    {streetView && followTruck && (
+      <StreetViewOverlay
+        lat={followTruck.lat}
+        lng={followTruck.lng}
+        label={followTruck.name}
+        onClose={() => setStreetView(false)}
+      />
+    )}
     <div className="space-y-4">
       <div>
         <div className="flex items-center gap-2">
@@ -263,17 +274,24 @@ export function LiveMap({
               <div className="flex gap-2">
                 <Button
                   size="sm"
+                  onClick={() => setStreetView(true)}
+                  className="flex-1 bg-[var(--surface-2)] hover:bg-blue-500/10 text-blue-400 text-xs font-semibold border border-[var(--border)]"
+                >
+                  📍 Street View
+                </Button>
+                <Button
+                  size="sm"
                   onClick={() => onSelectTruck(followTruck.id)}
-                  className="flex-1 bg-[var(--surface-2)] hover:bg-[var(--border)] text-[var(--text)] text-xs font-semibold border border-[var(--border)]"
+                  className="bg-[var(--surface-2)] hover:bg-[var(--border)] text-[var(--text)] text-xs font-semibold border border-[var(--border)] px-3"
                 >
                   Details
                 </Button>
                 <Button
                   size="sm"
                   onClick={stopFollow}
-                  className="flex-1 bg-red-900/40 hover:bg-red-900/60 text-red-400 border border-red-800 text-xs font-semibold"
+                  className="bg-red-900/40 hover:bg-red-900/60 text-red-400 border border-red-800 text-xs font-semibold px-3"
                 >
-                  ✕ Exit Follow
+                  ✕
                 </Button>
               </div>
             </div>
@@ -373,5 +391,6 @@ export function LiveMap({
         </div>
       </div>
     </div>
+    </>
   );
 }
