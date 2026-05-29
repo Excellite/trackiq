@@ -38,7 +38,9 @@ export function StreetViewOverlay({
         enableCloseButton: false,
         panControl: true,
         zoomControl: true,
-      });
+        // Force light colour scheme regardless of system dark mode
+        colorScheme: google.maps.ColorScheme.LIGHT,
+      } as google.maps.StreetViewPanoramaOptions);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
@@ -100,11 +102,15 @@ export function StreetViewOverlay({
           </div>
         )}
 
-        {/* Panorama div — always mounted so the API can write into it */}
+        {/* Panorama div — isolation prevents dark-mode CSS filters bleeding in */}
         <div
           ref={containerRef}
           className="absolute inset-0"
-          style={{ display: status === "unavailable" ? "none" : "block" }}
+          style={{
+            display: status === "unavailable" ? "none" : "block",
+            colorScheme: "light",
+            isolation: "isolate",
+          }}
         />
       </div>
     </div>
