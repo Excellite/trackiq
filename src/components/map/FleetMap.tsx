@@ -8,7 +8,8 @@ import {
   Polyline,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { useState, useEffect, useRef } from "react";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Truck } from "@/data/trucks";
 
 const NIGERIA = { lat: 9.08, lng: 8.68 };
@@ -144,6 +145,51 @@ function TruckRoute({ route, color, fitMap = false }: { route: TruckRoute; color
   );
 }
 
+// ── Clustered truck markers (imperative, avoids per-marker hook limits) ────────
+function ClusteredTruckMarkers({
+  trucks,
+  selectedId,
+  onSelect,
+  onInfo,
+}: {
+  trucks: Truck[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onInfo: (id: string) => void;
+}) {
+  const map = useMap();
+  const gMarkers = useRef<google.maps.Marker[]>([]);
+  const clusterer = useRef<MarkerClusterer | null>(null);
+
+  const rebuild = useCallback(() => {
+    if (!map) return;
+    gMarkers.current.forEach((m) => m.setMap(null));
+    clusterer.current?.clearMarkers();
+
+    const markers = trucks.map((truck) => {
+      const m = new google.maps.Marker({
+        position: { lat: truck.lat, lng: truck.lng },
+        icon: markerIcon(truck, selectedId === truck.id),
+        title: `${truck.name} · ${truck.driver}`,
+        zIndex: 10,
+      });
+      m.addListener("click", () => { onSelect(truck.id); onInfo(truck.id); });
+      return m;
+    });
+
+    gMarkers.current = markers;
+    clusterer.current = new MarkerClusterer({ map, markers });
+  }, [map, trucks, selectedId, onSelect, onInfo]);
+
+  useEffect(() => { rebuild(); }, [rebuild]);
+  useEffect(() => () => {
+    gMarkers.current.forEach((m) => m.setMap(null));
+    clusterer.current?.clearMarkers();
+  }, []);
+
+  return null;
+}
+
 export function FleetMap({
   trucks,
   selectedId,
@@ -151,6 +197,7 @@ export function FleetMap({
   routes = [],
   routePositions = [],
   followPositions = [],
+  trailPositions = {},
   zoom = 6,
   fitRoute = false,
 }: {
@@ -160,6 +207,7 @@ export function FleetMap({
   routes?: TruckRoute[];
   routePositions?: Array<{ lat: number; lng: number }>;
   followPositions?: Array<{ lat: number; lng: number }>;
+  trailPositions?: Record<string, Array<{ lat: number; lng: number }>>;
   zoom?: number;
   fitRoute?: boolean;
 }) {
@@ -225,25 +273,32 @@ export function FleetMap({
           </>
         )}
 
+        {/* Short position trails (last N pings) per truck */}
+        {Object.entries(trailPositions).map(([id, pts]) =>
+          pts.length > 1 ? (
+            <Polyline
+              key={`trail-${id}`}
+              path={pts}
+              strokeColor="#1558D6"
+              strokeWeight={3}
+              strokeOpacity={0.35}
+              geodesic
+            />
+          ) : null
+        )}
+
         {/* Live trip routes — real road directions per truck */}
         {routes.map((r, i) => (
           <TruckRoute key={r.truckId} route={r} color={ROUTE_COLORS[i % ROUTE_COLORS.length]} fitMap={fitRoute && i === 0} />
         ))}
 
-        {/* Truck position markers (on top of routes) */}
-        {trucks.map((truck) => (
-          <Marker
-            key={truck.id}
-            position={{ lat: truck.lat, lng: truck.lng }}
-            icon={markerIcon(truck, selectedId === truck.id)}
-            title={`${truck.name} · ${truck.driver}`}
-            zIndex={10}
-            onClick={() => {
-              onSelect(truck.id);
-              setInfoId((prev) => (prev === truck.id ? null : truck.id));
-            }}
-          />
-        ))}
+        {/* Clustered truck position markers */}
+        <ClusteredTruckMarkers
+          trucks={trucks}
+          selectedId={selectedId}
+          onSelect={onSelect}
+          onInfo={(id) => setInfoId((prev) => (prev === id ? null : id))}
+        />
 
         {/* Info popup */}
         {infoTruck && (

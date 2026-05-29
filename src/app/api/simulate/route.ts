@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateTruckById } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 
 // ── Geometry helpers ──────────────────────────────────────────────────────────
 function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -249,18 +249,13 @@ function simulate(id: string, spec: RouteSpec, nowSec: number) {
 export async function POST() {
   const nowSec = Date.now() / 1000;
 
-  const jobs = [
-    ...Object.entries(ROUTES).map(([id, spec]) =>
-      updateTruckById(id, simulate(id, spec, nowSec)).catch(() => null)
-    ),
-    // TRL-003 stays parked at Kano yard
-    updateTruckById("TRL-003", {
-      lat: 12.00, lng: 8.52, speed: 0, status: "offline", fuel: 23,
-      route: "Kano Yard — Offline",
-    }).catch(() => null),
+  const rows = [
+    ...Object.entries(ROUTES).map(([id, spec]) => ({ id, ...simulate(id, spec, nowSec) })),
+    { id: "TRL-003", lat: 12.00, lng: 8.52, speed: 0, status: "offline", fuel: 23, route: "Kano Yard — Offline" },
   ];
 
-  await Promise.all(jobs);
+  const { error } = await supabase.from("trucks").upsert(rows, { onConflict: "id" });
+  if (error) console.error("[simulate] upsert error:", error.message);
 
-  return NextResponse.json({ ok: true, tick: new Date().toISOString() });
+  return NextResponse.json({ ok: !error, tick: new Date().toISOString() });
 }

@@ -37,6 +37,7 @@ export function LiveMap({
   const [positions,     setPositions]     = useState<Position[]>([]);
   const [matchedPath,   setMatchedPath]   = useState<Array<{ lat: number; lng: number }>>([]);
   const [streetView,    setStreetView]    = useState(false);
+  const [trailPositions, setTrailPositions] = useState<Record<string, Array<{ lat: number; lng: number }>>>({});
   const followInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch OSRM road route from trip origin to current truck position
@@ -90,6 +91,35 @@ export function LiveMap({
     for (let i = 1; i < positions.length; i++) d += haversineKm(positions[i - 1], positions[i]);
     return d;
   }, [positions]);
+
+  // ETA: remaining path length ÷ current speed
+  const etaMin = useMemo(() => {
+    if (!followTruck || followTruck.speed < 5 || matchedPath.length < 2) return null;
+    let remaining = 0;
+    for (let i = 1; i < matchedPath.length; i++) {
+      remaining += haversineKm(
+        matchedPath[i - 1] as unknown as Position,
+        matchedPath[i]     as unknown as Position
+      );
+    }
+    return Math.round((remaining / followTruck.speed) * 60);
+  }, [matchedPath, followTruck]);
+
+  // Accumulate last 8 positions per truck for trail lines
+  useEffect(() => {
+    if (!trucks.length) return;
+    setTrailPositions((prev) => {
+      const next = { ...prev };
+      trucks.forEach((t) => {
+        const trail = next[t.id] ?? [];
+        const last = trail[trail.length - 1];
+        if (!last || last.lat !== t.lat || last.lng !== t.lng) {
+          next[t.id] = [...trail, { lat: t.lat, lng: t.lng }].slice(-8);
+        }
+      });
+      return next;
+    });
+  }, [trucks]);
 
   const selTruck = trucks.find((t) => t.id === selId) ?? null;
   const moving   = trucks.filter((t) => t.status === "moving").length;
@@ -208,6 +238,7 @@ export function LiveMap({
               selectedId={selId}
               routes={followId ? [] : routes}
               followPositions={followLatLngs}
+              trailPositions={trailPositions}
               onSelect={(id) => {
                 setSelId(selId === id ? null : id);
                 if (followId) stopFollow();
@@ -249,11 +280,12 @@ export function LiveMap({
               </div>
 
               {/* Live stats */}
-              <div className="grid grid-cols-3 divide-x divide-[var(--border)] text-center">
+              <div className="grid grid-cols-4 divide-x divide-[var(--border)] text-center">
                 {[
-                  { val: followTruck.speed, unit: "km/h",   label: "Speed"    },
-                  { val: routeKm.toFixed(1), unit: "km",    label: "Trail"    },
-                  { val: positions.length,   unit: "pings", label: "History"  },
+                  { val: followTruck.speed,             unit: "km/h",  label: "Speed"   },
+                  { val: routeKm.toFixed(1),            unit: "km",    label: "Trail"   },
+                  { val: positions.length,              unit: "pings", label: "History" },
+                  { val: etaMin != null ? etaMin : "—", unit: etaMin != null ? "min" : "", label: "ETA" },
                 ].map(({ val, unit, label }) => (
                   <div key={label} className="px-2 py-1">
                     <p className="text-lg font-bold font-mono text-[var(--text)] leading-none">{val}</p>

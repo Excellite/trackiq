@@ -323,6 +323,7 @@ export function MapScreen() {
   const [trucks,      setTrucks]      = useState<Truck[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState<string | null>(null);
+  const [isOnline,    setIsOnline]    = useState(true);
   const [selected,    setSelected]    = useState<string | null>(null);
   const [followMode,  setFollowMode]  = useState(false);
   const [followTruck, setFollowTruck] = useState<Truck | null>(null);
@@ -421,8 +422,12 @@ export function MapScreen() {
       const data = await fetchTrucks();
       setTrucks(data);
       injectTrucks(data);
+      setIsOnline(true);
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message ?? "";
+      const network = msg.includes("Network") || msg.includes("fetch") || msg.includes("Failed");
+      setIsOnline(!network);
+      if (!network) setError(msg); // only show error for non-network issues
     } finally {
       setLoading(false);
     }
@@ -488,6 +493,12 @@ export function MapScreen() {
         <View style={[styles.overlay, StyleSheet.absoluteFillObject]}>
           <ActivityIndicator size="large" color="#F97316" />
           <Text style={styles.loadText}>Loading fleet positions…</Text>
+        </View>
+      )}
+
+      {!isOnline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineText}>⚡ No connection — showing last known data</Text>
         </View>
       )}
 
@@ -594,7 +605,9 @@ const styles = StyleSheet.create({
   map:             { flex: 1, backgroundColor: "#111827" },
   overlay:         { zIndex: 10, justifyContent: "center", alignItems: "center", backgroundColor: "#111827", gap: 12 },
   loadText:        { color: "#9CA3AF", fontSize: 13 },
-  errorBanner:     { position: "absolute", top: 10, left: 16, right: 16, zIndex: 20, backgroundColor: "#450a0a", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#FCA5A5", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  offlineBanner:   { position: "absolute", top: 0, left: 0, right: 0, zIndex: 25, backgroundColor: "#ca8a04", paddingVertical: 6, paddingHorizontal: 12, alignItems: "center" },
+  offlineText:     { color: "#1c1917", fontSize: 11, fontWeight: "600" },
+  errorBanner:     { position: "absolute", top: 40, left: 16, right: 16, zIndex: 20, backgroundColor: "#450a0a", borderRadius: 8, padding: 10, borderWidth: 1, borderColor: "#FCA5A5", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   errorText:       { color: "#FCA5A5", fontSize: 12 },
   errorRetry:      { color: "#F97316", fontWeight: "700", fontSize: 12 },
 

@@ -23,9 +23,11 @@ import { SettingsPanel }  from "@/components/layout/SettingsPanel";
 import { MobileTopBar, MobileDrawer } from "@/components/layout/MobileSidebar";
 
 import { useFleetData }     from "@/hooks/useFleetData";
+import { useOnline }        from "@/hooks/useOnline";
 import { LiveDot }          from "@/components/ui/live-dot";
 import { cn }               from "@/lib/cn";
 import { fuelText, fuelTw } from "@/lib/constants";
+import { checkGeofence }    from "@/lib/geofence";
 import type { Truck }       from "@/data/trucks";
 
 interface User {
@@ -35,6 +37,7 @@ interface User {
 }
 
 export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const online = useOnline();
   const [refreshInterval, setRefreshInterval] = useState(5_000);
   const [settingsOpen,    setSettingsOpen]    = useState(false);
   const [drawerOpen,      setDrawerOpen]      = useState(false);
@@ -86,6 +89,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
   const moving  = trucks.filter((t) => t.status === "moving").length;
   const alerts  = trucks.filter((t) => t.status === "alert").length;
   const today   = new Date().toISOString().split("T")[0];
+  const geofenceBreaches = trucks.filter((t) => checkGeofence(t.id, t.lat, t.lng)?.breached);
   const overdueService = trucks.filter((t) => t.nextService && t.nextService < today);
   const dueSoonService = trucks.filter((t) => {
     if (!t.nextService || t.nextService < today) return false;
@@ -127,6 +131,12 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
       />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Offline banner */}
+        {!online && (
+          <div className="bg-yellow-500 text-yellow-950 text-xs font-semibold text-center py-1.5 px-4 shrink-0">
+            ⚡ No internet connection — showing last known data
+          </div>
+        )}
         {/* Top header bar */}
         <header className="h-14 bg-[var(--surface)] border-b border-[var(--border)] hidden md:flex items-center px-6 gap-4 shrink-0 shadow-sm">
           <div className="flex-1">
@@ -244,6 +254,14 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
                   >
                     <AlertDescription>
                       ⚠ {alerts} truck{alerts > 1 ? "s" : ""} need{alerts === 1 ? "s" : ""} immediate attention. Click to view.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {geofenceBreaches.length > 0 && (
+                  <Alert className="border-orange-500/40 bg-orange-500/10 text-orange-400">
+                    <AlertDescription>
+                      🚧 {geofenceBreaches.length} vehicle{geofenceBreaches.length > 1 ? "s" : ""} outside assigned zone: {geofenceBreaches.slice(0, 3).map((t) => t.id).join(", ")}{geofenceBreaches.length > 3 ? ` +${geofenceBreaches.length - 3} more` : ""}.
                     </AlertDescription>
                   </Alert>
                 )}

@@ -16,9 +16,12 @@
       "bundleIdentifier": "ng.trackiq.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "TrackIQ needs location to track your vehicle position.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "TrackIQ needs background location to log trips automatically."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "TrackIQ needs background location to log trips automatically.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "backgroundModes": [
+        "location",
+        "fetch",
         "location",
         "fetch"
       ]

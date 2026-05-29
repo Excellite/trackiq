@@ -9,7 +9,9 @@ export async function GET(req: Request) {
     const data = truckId
       ? await getMaintenanceByTruck(truckId)
       : await getAllMaintenance();
-    return NextResponse.json({ data });
+    return NextResponse.json({ data }, {
+      headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+    });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

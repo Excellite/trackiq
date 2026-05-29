@@ -113,8 +113,13 @@ export function useFleetData({
 
   useEffect(() => {
     if (!enabled || !pollInterval) return;
-    const interval = setInterval(() => fetchFleet({ silent: true }), pollInterval);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchFleet({ silent: true });
+    }, pollInterval);
+    // Refresh immediately when the tab becomes visible again
+    const onVisible = () => { if (!document.hidden) fetchFleet({ silent: true }); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
   }, [enabled, pollInterval, fetchFleet]);
 
   return {

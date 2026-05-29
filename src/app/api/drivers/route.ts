@@ -5,7 +5,9 @@ import { supabase } from "@/lib/supabase";
 export async function GET() {
   try {
     const drivers = await getDriversWithStats();
-    return NextResponse.json({ data: drivers });
+    return NextResponse.json({ data: drivers }, {
+      headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+    });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

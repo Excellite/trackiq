@@ -23,6 +23,21 @@ export function FuelPage({
 
   const sorted = [...trucks].sort((a, b) => a.fuel - b.fuel);
 
+  // Efficiency leaderboard: estimate L/100km by vehicle type + speed
+  const BASE_RATE: Record<string, number> = { truck: 42, trailer: 52, bus: 28, car: 13 };
+  const withEfficiency = trucks
+    .filter((t) => t.status === "moving" && t.speed > 0)
+    .map((t) => {
+      const base = BASE_RATE[t.vehicle_type] ?? 38;
+      // +0.4% per km/h above 60, -0.3% per km/h below 60
+      const speedDelta = (t.speed - 60) * (t.speed > 60 ? 0.004 : -0.003);
+      const l100 = +(base * (1 + speedDelta)).toFixed(1);
+      return { ...t, l100 };
+    })
+    .sort((a, b) => a.l100 - b.l100); // most efficient first
+
+  const worstL100  = withEfficiency.length ? withEfficiency[withEfficiency.length - 1].l100 : 1;
+
   return (
     <div className="space-y-5">
       <div>
@@ -147,6 +162,41 @@ export function FuelPage({
           })}
         </div>
       </div>
+      {withEfficiency.length > 0 && (
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
+          <div className="py-3 px-5 border-b border-[var(--border)] flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Efficiency Leaderboard · Moving Vehicles</p>
+              <p className="text-xs text-[var(--subtle)] mt-0.5">Estimated L/100 km based on vehicle type and current speed</p>
+            </div>
+          </div>
+          <div>
+            {withEfficiency.map((t, i) => {
+              const barPct = Math.round((t.l100 / worstL100) * 100);
+              const color  = t.l100 < 20 ? "bg-emerald-500" : t.l100 < 40 ? "bg-orange-400" : "bg-red-500";
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => onSelectTruck(t.id)}
+                  className="flex items-center gap-4 px-5 py-3 border-b border-[var(--border-sub)] cursor-pointer hover:bg-[var(--surface-2)] transition-colors"
+                >
+                  <span className="text-xs font-bold text-[var(--subtle)] w-5 text-center tabular-nums">{i + 1}</span>
+                  <div className="w-28 shrink-0">
+                    <p className="text-sm font-semibold text-[var(--text)] truncate">{t.name}</p>
+                    <p className="text-[10px] text-[var(--subtle)] font-mono">{t.speed} km/h · {t.vehicle_type}</p>
+                  </div>
+                  <div className="flex-1 h-2 bg-[var(--surface-2)] rounded-full overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: `${barPct}%` }} />
+                  </div>
+                  <span className={cn("text-xs font-mono font-bold tabular-nums w-20 text-right", t.l100 < 20 ? "text-emerald-600" : t.l100 < 40 ? "text-orange-500" : "text-red-500")}>
+                    {t.l100} L/100 km
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
