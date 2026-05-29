@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Settings } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -38,6 +38,8 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
   const [refreshInterval, setRefreshInterval] = useState(5_000);
   const [settingsOpen,    setSettingsOpen]    = useState(false);
   const [drawerOpen,      setDrawerOpen]      = useState(false);
+  const [demoing,         setDemoing]         = useState(false);
+  const demoRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
     trucks:    apiTrucks,
@@ -63,6 +65,27 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
     setDetailId(id);
     setShowDetail(true);
   }, []);
+
+  const tick = useCallback(async () => {
+    await fetch("/api/simulate", { method: "POST" }).catch(() => null);
+    refresh();
+  }, [refresh]);
+
+  const toggleDemo = useCallback(() => {
+    setDemoing((prev) => {
+      if (prev) {
+        if (demoRef.current) clearInterval(demoRef.current);
+        demoRef.current = null;
+        return false;
+      } else {
+        tick();
+        demoRef.current = setInterval(tick, 3000);
+        return true;
+      }
+    });
+  }, [tick]);
+
+  useEffect(() => () => { if (demoRef.current) clearInterval(demoRef.current); }, []);
 
   const moving  = trucks.filter((t) => t.status === "moving").length;
   const alerts  = trucks.filter((t) => t.status === "alert").length;
@@ -118,6 +141,19 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
               <LiveDot pulse color="bg-emerald-500" />
               <span className="text-xs font-mono text-emerald-600 font-semibold">LIVE</span>
             </div>
+            <button
+              onClick={toggleDemo}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border",
+                demoing
+                  ? "bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/25"
+                  : "bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)] hover:border-orange-400 hover:text-orange-500"
+              )}
+              title={demoing ? "Stop demo simulation" : "Start live demo — trucks move in real time"}
+            >
+              {demoing && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+              {demoing ? "Stop Demo" : "▶ Demo Mode"}
+            </button>
             <span className="text-xs text-[var(--subtle)] hidden sm:block">
               {new Date().toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
             </span>
