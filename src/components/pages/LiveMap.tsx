@@ -37,6 +37,7 @@ export function LiveMap({
   const [positions,     setPositions]     = useState<Position[]>([]);
   const [matchedPath,   setMatchedPath]   = useState<Array<{ lat: number; lng: number }>>([]);
   const [streetView,    setStreetView]    = useState(false);
+  const [svPos, setSvPos] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [trailPositions, setTrailPositions] = useState<Record<string, Array<{ lat: number; lng: number }>>>({});
   const followInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -174,12 +175,12 @@ export function LiveMap({
 
   return (
     <>
-    {streetView && followTruck && (
+    {streetView && svPos && (
       <StreetViewOverlay
-        lat={followTruck.lat}
-        lng={followTruck.lng}
-        label={followTruck.name}
-        onClose={() => setStreetView(false)}
+        lat={svPos.lat}
+        lng={svPos.lng}
+        label={svPos.name}
+        onClose={() => { setStreetView(false); setSvPos(null); }}
       />
     )}
     <div className="space-y-4">
@@ -306,7 +307,10 @@ export function LiveMap({
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  onClick={() => setStreetView(true)}
+                  onClick={() => {
+                    setSvPos({ lat: followTruck.lat, lng: followTruck.lng, name: followTruck.name });
+                    setStreetView(true);
+                  }}
                   className="flex-1 bg-[var(--surface-2)] hover:bg-blue-500/10 text-blue-400 text-xs font-semibold border border-[var(--border)]"
                 >
                   📍 Street View
