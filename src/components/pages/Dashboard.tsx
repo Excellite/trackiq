@@ -282,7 +282,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
                     <div className="py-3 px-5 border-b border-[var(--border)] flex items-center justify-between gap-3 flex-wrap">
                       <p className="text-xs text-orange-500 font-mono tracking-widest uppercase font-semibold">Live Fleet Map · Nigeria</p>
                       <div className="flex gap-4 text-xs text-[var(--muted)]">
-                        {[["bg-emerald-500","Moving"],["bg-gray-400","Idle"],["bg-red-500","Alert"]].map(([c,l]) => (
+                        {[["bg-blue-600","Vehicle"],["bg-emerald-500","Destination"]].map(([c,l]) => (
                           <span key={l} className="flex items-center gap-1.5">
                             <span className={cn("w-2 h-2 rounded-full", c)} />{l}
                           </span>

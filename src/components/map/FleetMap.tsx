@@ -25,16 +25,12 @@ export interface TruckRoute {
   destination: { lat: number; lng: number };
 }
 
-function statusColor(s: string) {
-  return s === "moving" ? "#22C55E" : s === "alert" ? "#EF4444" : s === "offline" ? "#4B5563" : "#6B7280";
-}
-
 function markerIcon(truck: Truck, selected: boolean): google.maps.Symbol {
   return {
     path: google.maps.SymbolPath.CIRCLE,
-    fillColor: statusColor(truck.status),
+    fillColor: "#1558D6",
     fillOpacity: 1,
-    strokeColor: selected ? "#fff" : "rgba(255,255,255,0.5)",
+    strokeColor: selected ? "#fff" : "rgba(255,255,255,0.6)",
     strokeWeight: selected ? 2.5 : 1.5,
     scale: selected ? 11 : 9,
   };
@@ -51,11 +47,10 @@ function pinIcon(color: string, scale = 8): google.maps.Symbol {
   };
 }
 
-function destinationIcon(color: string): google.maps.Symbol {
-  // Teardrop / destination pin shape
+function destinationIcon(): google.maps.Symbol {
   return {
     path: "M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 Z",
-    fillColor: color,
+    fillColor: "#22C55E",
     fillOpacity: 1,
     strokeColor: "#fff",
     strokeWeight: 1.5,
@@ -143,8 +138,8 @@ function TruckRoute({ route, color, fitMap = false }: { route: TruckRoute; color
   return (
     <>
       <Polyline path={path} strokeColor={color} strokeWeight={4} strokeOpacity={0.75} geodesic />
-      <Marker position={route.origin}      icon={pinIcon("#22C55E", 7)}  title="Trip start"  zIndex={5} />
-      <Marker position={route.destination} icon={destinationIcon(color)} title="Destination" zIndex={5} />
+      <Marker position={route.origin}      icon={pinIcon("#22C55E", 7)} title="Trip start"  zIndex={5} />
+      <Marker position={route.destination} icon={destinationIcon()}      title="Destination" zIndex={5} />
     </>
   );
 }
