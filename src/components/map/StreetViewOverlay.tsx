@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// Unique ID scopes the CSS reset so it only kills filters inside this pano
+const PANO_ID = "sv-pano-root";
+
 export function StreetViewOverlay({
   lat,
   lng,
@@ -15,6 +18,22 @@ export function StreetViewOverlay({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "unavailable">("loading");
+
+  // Inject a scoped style that strips any filter Google Maps adds in dark mode
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "sv-filter-reset";
+    style.textContent = `
+      #${PANO_ID},
+      #${PANO_ID} * {
+        filter: none !important;
+        -webkit-filter: none !important;
+      }
+      #${PANO_ID} { color-scheme: light; }
+    `;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -38,9 +57,7 @@ export function StreetViewOverlay({
         enableCloseButton: false,
         panControl: true,
         zoomControl: true,
-        // Force light colour scheme regardless of system dark mode
-        colorScheme: google.maps.ColorScheme.LIGHT,
-      } as google.maps.StreetViewPanoramaOptions);
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
@@ -102,15 +119,12 @@ export function StreetViewOverlay({
           </div>
         )}
 
-        {/* Panorama div — isolation prevents dark-mode CSS filters bleeding in */}
+        {/* id targets the scoped CSS reset that strips Google Maps dark-mode filter */}
         <div
+          id={PANO_ID}
           ref={containerRef}
           className="absolute inset-0"
-          style={{
-            display: status === "unavailable" ? "none" : "block",
-            colorScheme: "light",
-            isolation: "isolate",
-          }}
+          style={{ display: status === "unavailable" ? "none" : "block" }}
         />
       </div>
     </div>
