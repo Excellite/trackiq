@@ -39,7 +39,7 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
   const [settingsOpen,    setSettingsOpen]    = useState(false);
   const [drawerOpen,      setDrawerOpen]      = useState(false);
   const [demoing,         setDemoing]         = useState(false);
-  const demoRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const demoRef = useRef<(() => void) | null>(null);
 
   const {
     trucks:    apiTrucks,
@@ -66,26 +66,22 @@ export function Dashboard({ user, onLogout }: { user: User; onLogout: () => void
     setShowDetail(true);
   }, []);
 
+  // Always call the latest refresh without making tick depend on it
+  demoRef.current = refresh;
   const tick = useCallback(async () => {
     await fetch("/api/simulate", { method: "POST" }).catch(() => null);
-    refresh();
-  }, [refresh]);
+    demoRef.current?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const toggleDemo = useCallback(() => {
-    setDemoing((prev) => {
-      if (prev) {
-        if (demoRef.current) clearInterval(demoRef.current);
-        demoRef.current = null;
-        return false;
-      } else {
-        tick();
-        demoRef.current = setInterval(tick, 3000);
-        return true;
-      }
-    });
-  }, [tick]);
+  useEffect(() => {
+    if (!demoing) return;
+    tick();
+    const id = setInterval(tick, 3000);
+    return () => clearInterval(id);
+  }, [demoing, tick]);
 
-  useEffect(() => () => { if (demoRef.current) clearInterval(demoRef.current); }, []);
+  const toggleDemo = useCallback(() => setDemoing((v) => !v), []);
 
   const moving  = trucks.filter((t) => t.status === "moving").length;
   const alerts  = trucks.filter((t) => t.status === "alert").length;
